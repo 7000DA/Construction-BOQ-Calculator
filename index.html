@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A free, open-source construction Bill of Quantities calculator.">
+  <title>Construction BOQ Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <p class="eyebrow">FREE • OPEN SOURCE • NO SIGN-UP</p>
+      <h1>Construction BOQ Calculator</h1>
+      <p>Prepare a simple Bill of Quantities, calculate item totals, and export your estimate to CSV.</p>
+    </header>
+
+    <section class="panel controls" aria-label="Estimate settings">
+      <label>Project name
+        <input id="projectName" type="text" placeholder="e.g. Residential Building">
+      </label>
+      <label>Currency
+        <select id="currency">
+          <option value="EGP">EGP – Egyptian Pound</option>
+          <option value="USD">USD – US Dollar</option>
+          <option value="EUR">EUR – Euro</option>
+          <option value="GBP">GBP – British Pound</option>
+          <option value="SAR">SAR – Saudi Riyal</option>
+          <option value="AED">AED – UAE Dirham</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="panel" aria-label="Bill of quantities">
+      <div class="section-heading">
+        <div>
+          <h2>Bill of Quantities</h2>
+          <p class="muted">Enter a description, unit, quantity, and unit rate for each item.</p>
+        </div>
+        <button id="addRow" class="button secondary" type="button">+ Add item</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Description</th>
+              <th scope="col">Unit</th>
+              <th scope="col">Quantity</th>
+              <th scope="col">Unit rate</th>
+              <th scope="col">Total</th>
+              <th scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="items"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="exportCsv" class="button primary" type="button">Export CSV</button>
+        <button id="clearAll" class="button text-button" type="button">Clear estimate</button>
+      </div>
+    </section>
+
+    <section class="summary-grid" aria-label="Estimate summary">
+      <article class="summary-card">
+        <span class="muted">Number of items</span>
+        <strong id="itemCount">0</strong>
+      </article>
+      <article class="summary-card total-card">
+        <span class="muted">Grand total</span>
+        <strong id="grandTotal">EGP 0.00</strong>
+      </article>
+    </section>
+
+    <footer>
+      <p>Use this tool as an estimating aid. Always verify quantities, rates, taxes, and contract requirements before relying on an estimate.</p>
+      <p><a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a> · Open-source project</p>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

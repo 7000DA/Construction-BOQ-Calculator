@@ -219,6 +219,39 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(pdf.length > 1000, "PDF report should contain rendered content");
 
     assert.deepEqual(pageErrors, [], "The page must not throw uncaught JavaScript errors");
+
+    const recoveryPage = await context.newPage();
+    const recoveryErrors = [];
+    recoveryPage.on("pageerror", error => recoveryErrors.push(error.message));
+    await recoveryPage.addInitScript(() => {
+      localStorage.setItem("professional-boq-v1-projects", JSON.stringify([
+        { id: "unsupported", schemaVersion: 99, info: {}, sections: [] },
+        { id: "malformed", schemaVersion: 1, info: {}, sections: "not-an-array" }
+      ]));
+    });
+    await recoveryPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await recoveryPage.locator("#grand").waitFor();
+    assert.equal(await recoveryPage.locator(".section").count(), 2, "Corrupt saved projects must not prevent a fresh project from opening");
+    assert.deepEqual(recoveryErrors, [], "Corrupt local project data must not cause uncaught errors");
+
+    const storageContext = await browser.newContext();
+    const storagePage = await storageContext.newPage();
+    await storagePage.addInitScript(() => {
+      Storage.prototype.setItem = function () { throw new DOMException("Quota exceeded", "QuotaExceededError"); };
+    });
+    await storagePage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await storagePage.locator("#grand").waitFor();
+    assert.ok((await storagePage.locator("#saveState").textContent()).includes("Local save failed"), "Unavailable local storage must be reported without crashing");
+    await storagePage.locator("#name").fill("Backup-only project");
+    await storagePage.waitForTimeout(500);
+    const [fallbackDownload] = await Promise.all([
+      storagePage.waitForEvent("download"),
+      storagePage.locator("#jsonOut").click()
+    ]);
+    const fallbackBackup = JSON.parse(fs.readFileSync(await fallbackDownload.path(), "utf8"));
+    assert.equal(fallbackBackup.project.info.name, "Backup-only project", "JSON backup must remain available when local storage fails");
+    await storageContext.close();
+    await recoveryPage.close();
     console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();
   } finally {

@@ -37,3 +37,13 @@ This branch is isolated from `main`. The currently published version remains unc
 
 ## Safety rule
 Do not merge this branch into `main` or change GitHub Pages publishing until the new version passes the acceptance checks.
+
+
+## Additional QA completed (2026-11-24)
+
+- Excel export now writes values with more than 15 significant digits as text to avoid silent Excel numeric rounding. Values with safe precision remain numeric. Exported line amounts and grand totals are derived from the Base-10 decimal representation before choosing a numeric/text cell representation.
+- Browser acceptance coverage verifies a 16-digit quantity, a high-precision rate and the exact product `1234567890123457.234567890123456` survive Excel export.
+- PDF pagination is tested with a 125-item BOQ; the generated PDF must contain at least two pages.
+- A 1,000-item Excel preview/import/render benchmark was measured in CI at **506 ms** in the latest successful run. This is a single CI measurement, not a performance guarantee.
+- Latest QA workflow run: `45366044460`, conclusion **success**, branch head `381fb90369317ec80b47fdcc768370fe1a66c714`.
+- Main branch and GitHub Pages remain unchanged. No merge or production deployment was performed.

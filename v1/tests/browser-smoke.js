@@ -71,6 +71,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
 
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
+    assert.equal(await page.locator("#print").textContent(), "طباعة / PDF", "Print action should be translated into Arabic");
+    assert.equal(await page.locator(".totals .grand small").textContent(), "الإجمالي العام", "Grand total label should be translated into Arabic");
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Language switching must not change project data");
     assert.ok((await page.locator(".note").textContent()).includes("تُحفظ المشروعات"), "Project instructions should be translated into Arabic");
     await page.locator("#open").click();
@@ -108,6 +110,24 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#preview").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".section").count(), 4, "Excel import should preserve distinct section groups");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));
+
+    const ambiguousBook = XLSX.utils.book_new();
+    const ambiguousSheet = XLSX.utils.aoa_to_sheet([
+      ["Description", "Description", "Unit", "Quantity", "Unit Rate"],
+      ["Ambiguous item", "Should not import", "m2", 1, 100]
+    ]);
+    XLSX.utils.book_append_sheet(ambiguousBook, ambiguousSheet, "BOQ");
+    const ambiguousDialog = page.waitForEvent("dialog");
+    await page.locator("#excelFile").setInputFiles({
+      name: "ambiguous-headers.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(ambiguousBook, { type: "buffer", bookType: "xlsx" })
+    });
+    const rejectedWorkbook = await ambiguousDialog;
+    assert.ok(rejectedWorkbook.message().includes("Could not read this workbook"), "Ambiguous duplicate Excel headers must be rejected");
+    await rejectedWorkbook.accept();
+    assert.equal(await page.locator(".section").count(), 4, "Rejected Excel workbooks must not change existing sections");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Rejected Excel workbooks must not change existing totals");
 
     const duplicateBook = XLSX.utils.book_new();
     const duplicateSheet = XLSX.utils.aoa_to_sheet([
@@ -208,6 +228,19 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(rejectedDuplicateId.message().includes("Invalid BOQ backup"), "Duplicate item identifiers must be rejected");
     await rejectedDuplicateId.accept();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected duplicate-ID backup must preserve current project");
+
+    const unknownFieldBackup = structuredClone(backup);
+    unknownFieldBackup.project.info.unexpectedField = "must not be accepted";
+    const unknownFieldDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "unknown-info-field.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(unknownFieldBackup))
+    });
+    const rejectedUnknownField = await unknownFieldDialog;
+    assert.ok(rejectedUnknownField.message().includes("Invalid BOQ backup"), "Unknown project metadata fields must be rejected");
+    await rejectedUnknownField.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected unknown-field backup must preserve current project");
 
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");

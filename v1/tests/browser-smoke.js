@@ -101,6 +101,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.getByRole("heading", { name: "المشروعات المحفوظة", exact: true }).waitFor();
     await page.locator("#closeProjects").click();
 
+    await page.locator("#lang").click(); // Restore English numeric formatting before total assertions.
     await page.locator("#addSection").click();
     assert.equal(await page.locator(".section").count(), 3, "Adding a section should create one independent section");
     const independentSection = page.locator(".section").last();
@@ -115,7 +116,6 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await independentSection.locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), 2, "Deleting a section should remove only that section");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
-    await page.locator("#lang").click(); // Use English numeric formatting for deterministic total assertions.
 
     const importBook = XLSX.utils.book_new();
     const importSheet = XLSX.utils.aoa_to_sheet([

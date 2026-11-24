@@ -263,7 +263,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       [],
       ["", "", "", "", ""]
     ]);
-    reorderedSheet.D2 = { t: "n", f: "6+6.5", v: 12.5 };
+    reorderedSheet.A2 = { t: "n", f: "6+6.5", v: 12.5 };
     XLSX.utils.book_append_sheet(reorderedBook, reorderedSheet, "BOQ");
     await page.locator("#excelFile").setInputFiles({
       name: "reordered-formula-text-numbers.xlsx",

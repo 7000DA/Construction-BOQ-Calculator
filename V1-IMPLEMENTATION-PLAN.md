@@ -8,6 +8,7 @@ This branch is isolated from `main`. The currently published version remains unc
 - Project information: name, BOQ reference, client, contractor, consultant, location and date.
 - Multiple BOQ sections with editable names and add/remove items.
 - Automatic item, section and grand totals. Incomplete rows are excluded from totals and exports.
+- Base-10 decimal arithmetic for line amounts, section totals and grand totals to avoid binary floating-point calculation noise.
 - Local project save/load and automatic saving.
 - JSON backup and restore.
 - Excel import with preview and validation; Excel export.

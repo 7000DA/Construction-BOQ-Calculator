@@ -14,6 +14,10 @@ assert.ok(js.includes("function validNumber("), "Strict numeric validation must 
 assert.ok(js.includes("function addDec(") && js.includes("function mulDec("), "Exact base-10 arithmetic must remain present");
 assert.ok(!js.includes("n(i.qty)*n(i.rate)"), "BOQ line amounts must not use direct binary floating-point multiplication");
 assert.ok(js.includes("copy=normalize(data)"), "Only schema-validated project snapshots may be persisted");
+assert.ok(js.includes("MAX_JSON_BYTES=10*1024*1024") && js.includes("MAX_EXCEL_BYTES=20*1024*1024"), "JSON and Excel imports must enforce file-size safety limits");
+assert.ok(!js.includes("innerHTML") && !js.includes("document.write(") && !js.includes("eval("), "User-controlled project data must not flow into unsafe HTML or eval sinks");
+assert.ok(html.includes("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"), "Browser must use the patched official SheetJS 0.20.3 release");
+assert.ok(!html.includes("xlsx@0.18.5"), "Vulnerable SheetJS 0.18.5 must not be loaded by the application");
 assert.ok(js.includes('if(type==="number"){let invalid='), "Numeric validation must not be applied to text inputs");
 assert.ok(js.includes('$("[data-en]").forEach('), "All bilingual labels must be iterated");
 

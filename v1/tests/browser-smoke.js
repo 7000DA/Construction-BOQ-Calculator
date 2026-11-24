@@ -426,6 +426,22 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await rejectedUnknownField.accept();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected unknown-field backup must preserve current project");
 
+    const originalViewport = page.viewportSize();
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 700 }]) {
+      await page.setViewportSize(viewport);
+      const layout = await page.evaluate(() => ({
+        viewport: window.innerWidth,
+        document: document.documentElement.scrollWidth,
+        main: document.querySelector("main").getBoundingClientRect().width,
+        tableViewport: document.querySelector(".table-wrap").getBoundingClientRect().width,
+        tableContent: document.querySelector(".table-wrap table").scrollWidth
+      }));
+      assert.ok(layout.document <= layout.viewport, "Page must not create horizontal viewport overflow at " + viewport.width + "px");
+      assert.ok(layout.main <= layout.viewport, "Main content must fit the viewport at " + viewport.width + "px");
+      assert.ok(layout.tableContent >= layout.tableViewport, "BOQ table should remain horizontally scrollable within its wrapper on narrow screens");
+    }
+    await page.setViewportSize(originalViewport);
+
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");
     assert.equal(await page.locator(".section-head .delete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must hide destructive section controls");

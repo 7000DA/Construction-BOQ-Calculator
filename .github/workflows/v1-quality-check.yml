@@ -1,0 +1,26 @@
+name: V1 quality checks
+on:
+  push:
+    branches:
+      - feature/professional-boq-v1
+    paths:
+      - "v1/**"
+      - ".github/workflows/v1-quality-check.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "v1/**"
+      - ".github/workflows/v1-quality-check.yml"
+jobs:
+  static-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        run: node --check v1/app.js
+      - name: Check HTML and JavaScript integration
+        run: node v1/tests/static-check.js

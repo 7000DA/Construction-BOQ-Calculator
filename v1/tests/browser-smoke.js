@@ -47,6 +47,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await row.locator("input.unit").fill("m3");
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
+    await page.waitForTimeout(150);
+    console.log("DIAGNOSTIC", { quantity: await row.locator("input.numeric").nth(0).inputValue(), rate: await row.locator("input.numeric").nth(1).inputValue(), amount: await row.locator(".amount").textContent(), grand: await page.locator("#grand").textContent(), errors: pageErrors });
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
     await row.locator("input.numeric").nth(0).fill("-2");
     assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Negative quantities should be visibly invalid");

@@ -54,6 +54,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Negative quantities should be visibly invalid");
     assert.ok((await page.locator("#grand").textContent()).includes("0.00"), "Invalid negative quantities must be excluded from totals");
     await page.waitForTimeout(500);
+    assert.ok((await page.locator("#saveState").textContent()).includes("Saved valid data"), "The save indicator should distinguish saved data from highlighted invalid edits");
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#grand").waitFor();
     assert.equal(await page.locator(".section").first().locator("tbody tr").last().locator("input.numeric").nth(0).inputValue(), "2.5", "Invalid edits must not poison the last valid saved quantity");
@@ -64,12 +65,12 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Calculated grand total should persist after reload");
     assert.ok((await page.locator("#saveState").textContent()).includes("·"), "Last saved time should be visible after reload");
     await page.locator("#units").selectOption("Imperial");
-    assert.ok((await page.locator("#unitOptions option").evaluateAll(options => options.map(option => option.value))).includes("ft³"), "Imperial unit suggestions should be available");
+    assert.ok((await page.locator("#unitOptions option").evaluateAll(options => options.map(option => option.value))).includes("ft³/day"), "Imperial construction-rate unit suggestions should be available");
     assert.equal(await page.locator(".section").first().locator("tbody tr").last().locator("input.numeric").nth(0).inputValue(), "2.5", "Changing unit system must not convert stored quantities");
     await page.locator("#units").selectOption("Custom");
     assert.equal(await page.locator("#unitOptions option").count(), 0, "Custom unit mode should leave unit labels fully user-defined");
     await page.locator("#units").selectOption("Metric");
-    assert.ok((await page.locator("#unitOptions option").evaluateAll(options => options.map(option => option.value))).includes("m³"), "Metric unit suggestions should be available");
+    assert.ok((await page.locator("#unitOptions option").evaluateAll(options => options.map(option => option.value))).includes("m³/day"), "Metric construction-rate unit suggestions should be available");
 
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
@@ -77,6 +78,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator(".totals .grand small").textContent(), "الإجمالي العام", "Grand total label should be translated into Arabic");
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Language switching must not change project data");
     assert.ok((await page.locator(".note").textContent()).includes("تُحفظ المشروعات"), "Project instructions should be translated into Arabic");
+    assert.ok((await page.locator(".note").textContent()).includes("تتطلب أدوات Excel اتصالًا بالإنترنت"), "Excel internet requirement should be documented in Arabic");
     await page.locator("#open").click();
     await page.locator("#projects").waitFor({ state: "visible" });
     await page.getByRole("heading", { name: "المشروعات المحفوظة", exact: true }).waitFor();

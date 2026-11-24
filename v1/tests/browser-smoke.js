@@ -317,6 +317,10 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await recoveryPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
     await recoveryPage.locator("#grand").waitFor();
     assert.equal(await recoveryPage.locator(".section").count(), 2, "Corrupt saved projects must not prevent a fresh project from opening");
+    await recoveryPage.evaluate(() => localStorage.removeItem("professional-boq-v1-projects"));
+    await recoveryPage.locator("#open").click();
+    assert.ok((await recoveryPage.locator("#projectList").textContent()).includes("لا توجد مشروعات محفوظة بعد"), "Empty saved-project state should be translated into Arabic");
+    await recoveryPage.locator("#closeProjects").click();
     await recoveryPage.evaluate(() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; });
     await recoveryPage.locator("#print").click();
     assert.equal(await recoveryPage.evaluate(() => window.__printCalled), false, "Formal reports must require a project name");

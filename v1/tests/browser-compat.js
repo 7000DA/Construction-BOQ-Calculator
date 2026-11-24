@@ -38,7 +38,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
         const page = await context.newPage();
         const errors = [];
         page.on("pageerror", error => errors.push(error.message));
-        await page.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+        await page.route("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js", route =>
           route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
         );
         await page.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });

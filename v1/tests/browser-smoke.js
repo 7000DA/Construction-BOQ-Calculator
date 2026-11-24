@@ -231,7 +231,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const duplicateBook = XLSX.utils.book_new();
     const duplicateSheet = XLSX.utils.aoa_to_sheet([
       ["Section", "Description", "Unit", "Quantity", "Unit Rate"],
-      ["  concrete  ", "Duplicate-section check", "m3", 0, 0]
+      ["  concrete  ", "Imported duplicate section with a very long description that should wrap instead of being cut off in the printed BOQ report", "m3", 0, 0]
     ]);
     XLSX.utils.book_append_sheet(duplicateBook, duplicateSheet, "BOQ");
     await page.locator("#excelFile").setInputFiles({
@@ -334,7 +334,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#confirmImport").click();
     await page.locator("#preview").waitFor({ state: "hidden" });
     await page.emulateMedia({ media: "print" });
+    await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+    assert.ok(await page.locator(".print-value").count() > 0, "Print preparation must replace editable inputs with wrapping text values");
+    assert.ok((await page.locator(".print-value").allTextContents()).some(value => value.includes("very long description that should wrap")), "Long BOQ descriptions must be preserved in print text");
     const multiPagePdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     fs.writeFileSync(path.join(artifactDir, "boq-report-en.pdf"), multiPagePdf);
     const multiPageDocument = await require("pdf-lib").PDFDocument.load(multiPagePdf);
     assert.ok(multiPageDocument.getPageCount() >= 2, "A large BOQ report must paginate into multiple PDF pages");
@@ -342,7 +346,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#lang").click();
     assert.equal(await page.locator("html").getAttribute("dir"), "rtl", "Arabic PDF must use RTL document direction");
     await page.emulateMedia({ media: "print" });
+    await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
     const arabicPdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     fs.writeFileSync(path.join(artifactDir, "boq-report-ar.pdf"), arabicPdf);
     const arabicDocument = await require("pdf-lib").PDFDocument.load(arabicPdf);
     assert.ok(arabicDocument.getPageCount() >= 2, "The Arabic BOQ report must paginate across multiple PDF pages");

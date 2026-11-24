@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { chromium } = require("playwright");
+const XLSX = require("xlsx");
 
 const root = path.resolve(__dirname, "..");
 const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
@@ -27,6 +28,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
     const context = await browser.newContext();
     const page = await context.newPage();
+    await page.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+      route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
+    );
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.message));
 
@@ -63,8 +67,57 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator(".section").last().locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), 2, "Deleting a section should remove only that section");
 
+    const importBook = XLSX.utils.book_new();
+    const importSheet = XLSX.utils.aoa_to_sheet([
+      ["Section", "Description", "Unit", "Quantity", "Unit Rate"],
+      ["Concrete", "Imported concrete", "m3", 1, 500],
+      ["Finishes", "Imported plaster", "m2", 2, 100],
+      ["Finishes", "Invalid row", "", 1, 100]
+    ]);
+    XLSX.utils.book_append_sheet(importBook, importSheet, "BOQ");
+    const importBuffer = XLSX.write(importBook, { type: "buffer", bookType: "xlsx" });
+    await page.locator("#excelFile").setInputFiles({
+      name: "grouped-import.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: importBuffer
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#previewRows tr").count(), 3, "Every imported row must be visible in the preview");
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("2 valid"), "Import preview should report valid rows");
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("1 invalid"), "Import preview should report invalid rows");
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 4, "Excel import should preserve distinct section groups");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));
+
+    const [excelDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#excelOut").click()
+    ]);
+    const exportedBook = XLSX.readFile(await excelDownload.path());
+    const exportedRows = XLSX.utils.sheet_to_json(exportedBook.Sheets.BOQ, { header: 1, defval: "" });
+    assert.ok(exportedRows.some(row => row[0] === "Concrete" && row[1] === "Imported concrete"), "Excel export should retain imported section names and items");
+    assert.ok(exportedRows.some(row => row[4] === "Grand total" && Number(row[5]) === 5700), "Excel export should include the correct grand total");
+
+    const [jsonDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#jsonOut").click()
+    ]);
+    const backup = JSON.parse(fs.readFileSync(await jsonDownload.path(), "utf8"));
+    assert.equal(backup.schemaVersion, 1, "JSON backup should declare its schema version");
+    assert.equal(backup.project.sections.length, 4, "JSON backup should contain all imported sections");
+    await page.locator("#name").fill("Temporary change");
+    await page.waitForTimeout(500);
+    await page.locator("#jsonFile").setInputFiles({
+      name: "restore.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(backup))
+    });
+    await page.waitForFunction(() => document.querySelector("#name").value === "CI Smoke Project");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "JSON restore should recover project calculations");
+
     assert.deepEqual(pageErrors, [], "The page must not throw uncaught JavaScript errors");
-    console.log("V1 browser smoke tests passed: startup, BOQ calculation, local persistence, language toggle, section add/delete.");
+    console.log("V1 browser tests passed: startup, calculation, persistence, language, sections, grouped Excel import/export and JSON backup/restore.");
     await context.close();
   } finally {
     if (browser) await browser.close();

@@ -216,6 +216,31 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     });
     assert.equal(concreteRows, 2, "Rows imported into a matching section must be merged into it");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "A zero-value imported row must not change totals");
+
+    await page.locator("#lang").click();
+    const arabicBook = XLSX.utils.book_new();
+    const arabicSheet = XLSX.utils.aoa_to_sheet([
+      ["المجموعة", "وصف البند", "الوحدة", "الكمية", "سعر الوحدة"],
+      ["اختبار عربي", "بند عربي", "م²", 1, 50]
+    ]);
+    XLSX.utils.book_append_sheet(arabicBook, arabicSheet, "BOQ");
+    await page.locator("#excelFile").setInputFiles({
+      name: "arabic-boq.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(arabicBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("صف صحيح"), "Arabic Excel headers should be recognized and previewed");
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 5, "Arabic Excel import should create the named section");
+    assert.ok((await page.locator("#grand").textContent()).includes("٥٬٧٥٠"), "Arabic imported amounts should update the grand total");
+    const arabicSection = page.locator(".section").last();
+    assert.equal(await arabicSection.locator(".section-name").inputValue(), "اختبار عربي", "Arabic section names should be preserved");
+    page.once("dialog", dialog => dialog.accept());
+    await arabicSection.locator(".section-head .delete").click();
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("٥٬٧٠٠"));
+    await page.locator("#lang").click();
     await page.locator("#excelFile").setInputFiles({ name: "grouped-import.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: importBuffer });
     await page.locator("#preview").waitFor({ state: "visible" });
     await page.locator("#cancelImport").click();

@@ -2,7 +2,7 @@
 const $=s=>document.querySelector(s),KEY="professional-boq-v1-projects",VERSION=1;let lang="en",data=fresh(),pending=[];
 function id(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
 function fresh(){return{schemaVersion:VERSION,id:id(),info:{name:"",ref:"",client:"",contractor:"",consultant:"",location:"",date:new Date().toISOString().slice(0,10),currency:"EGP",units:"Metric"},sections:[]}}
-function t(en,ar){return lang==="ar"?ar:en}function validNumber(v){return v!==""&&String(v).trim()!==""&&Number.isFinite(Number(v))&&Number(v)>=0}function n(v){return validNumber(v)?Number(v):0}
+function t(en,ar){return lang==="ar"?ar:en}function validNumber(v){if(typeof v==="number")return Number.isFinite(v)&&v>=0;if(typeof v!=="string")return false;let value=v.trim();return !!value&&/^\\+?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?$/.test(value)&&Number.isFinite(Number(value))&&Number(value)>=0}function n(v){return validNumber(v)?Number(v):0}
 function fmt(v){try{return new Intl.NumberFormat(lang==="ar"?"ar-EG":"en-US",{style:"currency",currency:data.info.currency||"EGP"}).format(v)}catch{return data.info.currency+" "+v.toFixed(2)}}
 function rows(s){return s.items.filter(i=>i.description.trim()&&i.unit.trim()&&validNumber(i.qty)&&validNumber(i.rate))}
 function total(s){return rows(s).reduce((a,i)=>a+n(i.qty)*n(i.rate),0)}function grand(){return data.sections.reduce((a,s)=>a+total(s),0)}

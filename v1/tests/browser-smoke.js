@@ -60,6 +60,17 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const disposableRow = first.locator("tbody tr").last();
     await disposableRow.locator("input.description").fill("Temporary test item");
     await disposableRow.locator("input.unit").fill("m");
+    await disposableRow.locator("input.numeric").nth(0).fill("0.1");
+    await disposableRow.locator("input.numeric").nth(1).fill("0.2");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000.02"));
+    const [precisionDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#excelOut").click()
+    ]);
+    const precisionBook = XLSX.readFile(await precisionDownload.path());
+    const precisionRows = XLSX.utils.sheet_to_json(precisionBook.Sheets.BOQ, { header: 1, defval: "" });
+    const precisionItem = precisionRows.find(row => row[1] === "Temporary test item");
+    assert.equal(Number(precisionItem[5]), 0.02, "Decimal multiplication must export the exact decimal result without binary floating-point noise");
     await disposableRow.locator("input.numeric").nth(0).fill("1");
     await disposableRow.locator("input.numeric").nth(1).fill("100");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,100"));

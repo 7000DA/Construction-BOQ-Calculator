@@ -52,7 +52,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Calculated grand total should persist after reload");
 
     await page.locator("#lang").click();
-    await page.getByRole("heading", { name: "جدول الكميات" }).waitFor();
+    await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Language switching must not change project data");
 
     await page.locator("#addSection").click();

@@ -66,6 +66,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     page.once("dialog", dialog => dialog.accept());
     await page.locator(".section").last().locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), 2, "Deleting a section should remove only that section");
+    await page.locator("#lang").click(); // Use English numeric formatting for deterministic total assertions.
 
     const importBook = XLSX.utils.book_new();
     const importSheet = XLSX.utils.aoa_to_sheet([

@@ -630,9 +630,13 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Arabic RTL page must not overflow horizontally at " + viewport.width + "px");
       const rtlWrap = page.locator(".table-wrap").first();
       const metrics = await rtlWrap.evaluate(el => ({ client:el.clientWidth, scroll:el.scrollWidth, overflow:getComputedStyle(el).overflowX }));
-      assert.ok(metrics.scroll > metrics.client && ["auto","scroll"].includes(metrics.overflow), "Arabic BOQ table must scroll within its own wrapper at " + viewport.width + "px");
-      await rtlWrap.evaluate(el => { el.scrollLeft = -el.scrollWidth; });
-      assert.ok(await rtlWrap.evaluate(el => Math.abs(el.scrollLeft) > 0), "Arabic table must allow access to its far columns at " + viewport.width + "px");
+      if (viewport.width <= 390) {
+        assert.ok(metrics.scroll > metrics.client && ["auto","scroll"].includes(metrics.overflow), "Arabic BOQ table must scroll within its own wrapper at " + viewport.width + "px");
+        await rtlWrap.evaluate(el => { el.scrollLeft = -el.scrollWidth; });
+        assert.ok(await rtlWrap.evaluate(el => Math.abs(el.scrollLeft) > 0), "Arabic table must allow access to its far columns at " + viewport.width + "px");
+      } else {
+        assert.ok(metrics.scroll <= metrics.client + 1, "Arabic BOQ table should fit without horizontal scrolling in landscape at " + viewport.width + "px");
+      }
       if (viewport.width === 390) {
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({ path: path.resolve(artifactDir, "boq-mobile-ar-390.png"), fullPage: true });

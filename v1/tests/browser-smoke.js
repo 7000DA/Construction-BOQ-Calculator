@@ -216,6 +216,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     });
     assert.equal(concreteRows, 2, "Rows imported into a matching section must be merged into it");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "A zero-value imported row must not change totals");
+    await page.locator("#excelFile").setInputFiles({ name: "grouped-import.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: importBuffer });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    await page.locator("#cancelImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 4, "Reselecting the same Excel file must reopen preview without changing data");
 
     const [excelDownload] = await Promise.all([
       page.waitForEvent("download"),
@@ -244,6 +249,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     });
     await page.waitForFunction(() => document.querySelector("#name").value === "CI Smoke Project");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "JSON restore should recover project calculations");
+    await page.locator("#jsonFile").setInputFiles({ name: "restore.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup)) });
+    await page.waitForFunction(() => document.querySelector("#name").value === "CI Smoke Project");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Reselecting the same JSON backup must restore without stale file-input state");
 
     const futureBackup = structuredClone(backup);
     futureBackup.project.schemaVersion = 99;

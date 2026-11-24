@@ -73,6 +73,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(Number(precisionItem[5]), 0.02, "Decimal multiplication must export the exact decimal result without binary floating-point noise");
     await row.locator("input.numeric").nth(0).fill("1234567890123456");
     await row.locator("input.numeric").nth(1).fill("1.000000000000001");
+    assert.equal(await row.locator("input.numeric").nth(0).inputValue(), "1234567890123456", "Browser input must retain the high-precision quantity before export");
+    assert.equal(await row.locator("input.numeric").nth(1).inputValue(), "1.000000000000001", "Browser input must retain the high-precision rate before export");
     const [highPrecisionDownload] = await Promise.all([
       page.waitForEvent("download"),
       page.locator("#excelOut").click()

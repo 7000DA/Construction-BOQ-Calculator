@@ -27,6 +27,6 @@ jobs:
       - name: Install browser test dependency
         run: npm install --no-save playwright
       - name: Install Chromium
-        run: npx playwright install chromium
+        run: npx playwright install chromium --only-shell
       - name: Run browser smoke tests
         run: node v1/tests/browser-smoke.js

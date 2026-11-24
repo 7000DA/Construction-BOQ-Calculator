@@ -431,7 +431,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await recoveryPage.evaluate(() => window.__printCalled), true, "A named project should be printable");
     assert.deepEqual(recoveryErrors, [], "Corrupt local project data must not cause uncaught errors");
 
-    const lifecyclePage = await context.newPage();
+    const lifecycleContext = await browser.newContext();
+    const lifecyclePage = await lifecycleContext.newPage();
     await lifecyclePage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
     await lifecyclePage.locator("#grand").waitFor();
     const activeProjectId = await lifecyclePage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects"))[0].id);
@@ -444,7 +445,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const remainingProjectIds = await lifecyclePage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects") || "[]").map(project => project.id));
     assert.ok(!remainingProjectIds.includes(activeProjectId), "Deleting the currently open project must cancel pending autosave and must not recreate the deleted project");
     assert.equal(await lifecyclePage.locator("#sections .section").count(), 0, "Deleting the active project should leave a clean unsaved workspace");
-    await lifecyclePage.close();
+    await lifecycleContext.close();
 
     const legacyPage = await context.newPage();
     await legacyPage.addInitScript(() => {

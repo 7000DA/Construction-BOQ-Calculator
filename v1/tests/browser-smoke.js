@@ -438,7 +438,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await lifecyclePage.locator("#name").fill("Project pending deletion");
     await lifecyclePage.locator("#open").click();
     await lifecyclePage.locator("#projectList .saved").first().waitFor();
-    page.once("dialog", dialog => dialog.accept());
+    lifecyclePage.once("dialog", dialog => dialog.accept());
     await lifecyclePage.locator("#projectList .saved .danger").first().click();
     await lifecyclePage.waitForTimeout(600);
     const remainingProjectIds = await lifecyclePage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects") || "[]").map(project => project.id));

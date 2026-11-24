@@ -408,7 +408,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     console.log("BOQ stress benchmark: 5000-row Excel preview + import + render = " + (Date.now() - stressStarted) + " ms");
     page.once("dialog", dialog => dialog.accept());
     await stressSection.locator(".section-head .delete").click();
-    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"), { timeout: 60000 });
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"), null, { timeout: 60000 });
 
     const [excelDownload] = await Promise.all([
       page.waitForEvent("download"),

@@ -112,6 +112,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
     assert.equal(await page.locator("#print").textContent(), "طباعة / PDF", "Print action should be translated into Arabic");
     assert.equal(await page.locator(".totals .grand small").textContent(), "الإجمالي العام", "Grand total label should be translated into Arabic");
+    assert.equal(await page.locator("#units option[value=\"Metric\"]").textContent(), "متري", "Metric unit choice should be translated into Arabic");
+    assert.equal(await page.locator("#units option[value=\"Imperial\"]").textContent(), "إنجليزي (Imperial)", "Imperial unit choice should be translated into Arabic");
+    assert.equal(await page.locator("#units option[value=\"Custom\"]").textContent(), "مخصص", "Custom unit choice should be translated into Arabic");
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Language switching must not change project data");
     assert.ok((await page.locator(".note").textContent()).includes("تُحفظ المشروعات"), "Project instructions should be translated into Arabic");
     assert.ok((await page.locator(".note").textContent()).includes("تتطلب أدوات Excel اتصالًا بالإنترنت"), "Excel internet requirement should be documented in Arabic");

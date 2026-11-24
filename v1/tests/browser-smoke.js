@@ -83,6 +83,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await row.locator("input.numeric").nth(0).fill("1e-999999999999");
     assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Extreme exponents must be rejected before decimal arithmetic");
     assert.equal(pageErrors.length, 0, "Unsupported numeric precision must not cause browser errors");
+    await row.locator("input.numeric").nth(0).fill("1e101");
+    assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Values that could overflow line-item calculations must be rejected");
+    assert.equal(pageErrors.length, 0, "Out-of-range values must not cause browser errors");
     await row.locator("input.numeric").nth(0).fill("-2");
     await page.waitForTimeout(500);
     assert.ok((await page.locator("#saveState").textContent()).includes("Saved valid data"), "The save indicator should distinguish saved data from highlighted invalid edits");

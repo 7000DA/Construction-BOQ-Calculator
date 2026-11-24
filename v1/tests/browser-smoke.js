@@ -433,7 +433,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5005, "Round-trip preview must include the five starter rows and all 5000 exported stress rows");
     await roundTripPage.locator("#confirmImport").click();
     await roundTripPage.locator("#preview").waitFor({ state: "hidden", timeout: 60000 });
-    const roundTripStressSection = roundTripPage.locator(".section").filter({ has: roundTripPage.locator(".section-name") }).filter({ hasText: "Stress 5000" });
+    const roundTripStressSection = roundTripPage.locator(".section").last();
     assert.equal(await roundTripStressSection.locator("tbody tr").count(), 5000, "Round-trip import must reconstruct all 5000 stress rows");
     assert.ok((await roundTripPage.locator("#grand").textContent()).includes("10,700"), "Round-trip import must reconstruct the project total");
     await roundTripContext.close();

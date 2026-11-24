@@ -446,6 +446,29 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await lifecyclePage.locator("#sections .section").count(), 0, "Deleting the active project should leave a clean unsaved workspace");
     await lifecyclePage.close();
 
+    const legacyPage = await context.newPage();
+    await legacyPage.addInitScript(() => {
+      localStorage.setItem("professional-boq-v1-projects", JSON.stringify([{
+        id: "legacy-project",
+        info: { name: "Legacy BOQ" },
+        sections: [{
+          id: "legacy-section",
+          name: "Legacy works",
+          items: [{ id: "legacy-item", description: "Legacy concrete", unit: "m3", qty: "2", rate: "10" }]
+        }]
+      }]));
+    });
+    await legacyPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await legacyPage.locator("#grand").waitFor();
+    assert.equal(await legacyPage.locator("#name").inputValue(), "Legacy BOQ", "Legacy projects without schemaVersion or savedAt must remain readable");
+    assert.equal(await legacyPage.locator(".section-name").inputValue(), "Legacy works", "Legacy section names must be preserved");
+    assert.ok((await legacyPage.locator("#grand").textContent()).includes("20"), "Legacy BOQ quantities and rates must retain their calculation");
+    await legacyPage.locator("#save").click();
+    const migratedLegacy = await legacyPage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects")).find(project => project.id === "legacy-project"));
+    assert.equal(migratedLegacy.schemaVersion, 1, "Saving a legacy project should write the current schema version");
+    assert.ok(typeof migratedLegacy.savedAt === "string" && Number.isFinite(Date.parse(migratedLegacy.savedAt)), "Saving a legacy project should populate a valid savedAt timestamp");
+    await legacyPage.close();
+
     const storageContext = await browser.newContext();
     const storagePage = await storageContext.newPage();
     await storagePage.addInitScript(() => {

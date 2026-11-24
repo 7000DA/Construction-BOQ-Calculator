@@ -209,7 +209,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(exportedRows.some(row => row[0] === "Concrete" && row[1] === "Imported concrete"), "Excel export should retain imported section names and items");
     assert.ok(exportedRows.some(row => row[4] === "Grand total" && Number(row[5]) === 5700), "Excel export should include the correct grand total");
     assert.ok(exportedRows.some(row => row[0] === "Project" && row[1] === "CI Smoke Project"), "Excel export should include project metadata");
-    assert.equal(exportedRows.filter(row => String(row[1] || "").trim()).length, 4, "Excel export should contain only complete BOQ items and no blank item rows");
+    assert.equal(exportedRows.filter(row => String(row[1] || "").trim() && String(row[2] || "").trim() && typeof row[3] === "number" && typeof row[4] === "number").length, 4, "Excel export should contain only complete BOQ items and no blank item rows");
 
     const [jsonDownload] = await Promise.all([
       page.waitForEvent("download"),

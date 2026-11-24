@@ -267,6 +267,13 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const bulkSection = page.locator(".section").last();
     assert.equal(await bulkSection.locator("tbody tr").count(), 125, "All valid bulk rows should be imported");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"));
+    const [bulkExportDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#excelOut").click()
+    ]);
+    const bulkExportBook = XLSX.readFile(await bulkExportDownload.path());
+    const bulkExportRows = XLSX.utils.sheet_to_json(bulkExportBook.Sheets.BOQ, { header: 1, defval: "" });
+    assert.equal(bulkExportRows.filter(row => String(row[1] || "").trim() && String(row[2] || "").trim() && typeof row[3] === "number" && typeof row[4] === "number").length, 129, "Excel export should preserve every valid item in a large BOQ");
     page.once("dialog", dialog => dialog.accept());
     await bulkSection.locator(".section-head .delete").click();
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));

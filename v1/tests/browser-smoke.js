@@ -256,6 +256,39 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#preview").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".section").count(), 4, "Canceling CSV preview must not change the project");
 
+    const reorderedBook = XLSX.utils.book_new();
+    const reorderedSheet = XLSX.utils.aoa_to_sheet([
+      ["Unit Rate", "Description", "Quantity", "Unit", "Section"],
+      ["12.5", "Reordered columns item", "3", "m2", "Reordered test"],
+      [],
+      ["", "", "", "", ""]
+    ]);
+    reorderedSheet.D2 = { t: "n", f: "6+6.5", v: 12.5 };
+    XLSX.utils.book_append_sheet(reorderedBook, reorderedSheet, "BOQ");
+    await page.locator("#excelFile").setInputFiles({
+      name: "reordered-formula-text-numbers.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(reorderedBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#previewRows tr").count(), 1, "Blank Excel rows should be ignored while the single populated row is previewed");
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("1 valid"), "Reordered columns and numeric text should be accepted when values are valid");
+    await page.locator("#cancelImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 4, "Canceling reordered Excel import must not alter the project");
+
+    await page.locator("#excelFile").setInputFiles({
+      name: "utf8-arabic-import.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("Section,Description,Unit,Quantity,Unit Rate\\nأعمال خرسانة,خرسانة مسلحة,m3,2,1500\\n", "utf8")
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#previewRows tr").count(), 1, "UTF-8 CSV import should expose its populated data row");
+    assert.ok((await page.locator("#previewRows").textContent()).includes("خرسانة مسلحة"), "UTF-8 CSV import should preserve Arabic item descriptions");
+    await page.locator("#cancelImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 4, "Canceling UTF-8 CSV preview must leave project data unchanged");
+
     const bulkBook = XLSX.utils.book_new();
     const bulkRows = [["Section", "Description", "Unit", "Quantity", "Unit Rate"]];
     for (let index = 1; index <= 125; index++) bulkRows.push(["Bulk test", "Bulk item " + index, "m", 1, 1]);

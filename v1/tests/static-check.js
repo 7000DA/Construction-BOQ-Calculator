@@ -10,4 +10,9 @@ assert.deepEqual(missing, [], "JavaScript references IDs missing from v1/index.h
 assert.ok(js.includes('$$("[data-en]").forEach('), "Language labels must be selected as a collection");
 assert.ok(!/(^|[^$])\$\("\[data-en\]"\)\.forEach/.test(js), "Single-element selector must not be used as a collection");
 assert.ok(js.includes("schemaVersion"), "Project schema versioning must remain present");
+assert.ok(js.includes("function validNumber("), "Strict numeric validation must remain present");
+assert.ok(js.includes("copy=normalize(data)"), "Only schema-validated project snapshots may be persisted");
+assert.ok(js.includes('if(type==="number"){let invalid='), "Numeric validation must not be applied to text inputs");
+assert.ok(js.includes('$("[data-en]").forEach('), "All bilingual labels must be iterated");
+
 console.log("V1 static checks passed.");

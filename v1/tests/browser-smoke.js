@@ -588,7 +588,6 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const addedMobileRow = mobileSection.locator("tbody tr").last();
     await addedMobileRow.locator("input.description").fill("Mobile interaction test");
     assert.equal(await addedMobileRow.locator("input.description").inputValue(), "Mobile interaction test", "New BOQ description must be editable on mobile");
-    page.once("dialog", dialog => dialog.accept());
     await addedMobileRow.locator("button.remove").click();
     assert.equal(await mobileSection.locator("tbody tr").count(), beforeMobileAdd, "Delete item control must work on a mobile viewport");
     for (const width of [390, 320]) {

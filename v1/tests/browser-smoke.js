@@ -53,11 +53,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await row.locator("input.numeric").nth(0).fill("-2");
     assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Negative quantities should be visibly invalid");
     assert.ok((await page.locator("#grand").textContent()).includes("0.00"), "Invalid negative quantities must be excluded from totals");
-    await row.locator("input.numeric").nth(0).fill("2.5");
-    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
-    await page.waitForTimeout(700);
-
+    await page.waitForTimeout(500);
     await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator("#grand").waitFor();
+    assert.equal(await page.locator(".section").first().locator("tbody tr").last().locator("input.numeric").nth(0).inputValue(), "2.5", "Invalid edits must not poison the last valid saved quantity");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Reload should recover the last valid saved calculation");
     await page.locator("#grand").waitFor();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Project information should persist after reload");
     assert.equal(await page.locator(".section").first().locator("tbody tr").count(), 2, "BOQ rows should persist after reload");

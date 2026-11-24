@@ -50,7 +50,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(!(await row.locator("input.unit").evaluate(el => el.classList.contains("invalid-input"))), "Unit labels must not be subjected to numeric validation");
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
-    await page.waitForFunction(() => normalizedDigits(document.querySelector("#grand").textContent).startsWith("5000"));
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[^0-9]/g, "").startsWith("5000"));
     await row.locator("input.numeric").nth(1).fill("2100");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,250"));
     await row.locator("input.numeric").nth(1).fill("2000");
@@ -122,7 +122,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await independentRow.locator("input.unit").fill("m2");
     await independentRow.locator("input.numeric").nth(0).fill("1");
     await independentRow.locator("input.numeric").nth(1).fill("300");
-    await page.waitForFunction(() => normalizedDigits(document.querySelector("#grand").textContent).startsWith("5300"));
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[^0-9]/g, "").startsWith("5300"));
     assert.ok(normalizedDigits(await independentSection.locator(".section-total").textContent()).startsWith("300"), "Section total should be independent from the grand total");
     page.once("dialog", dialog => dialog.accept());
     await independentSection.locator(".section-head .delete").click();

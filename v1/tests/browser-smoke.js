@@ -602,7 +602,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await unreadableStoragePage.locator("#open").click();
     assert.ok((await unreadableStoragePage.locator("#projectList").textContent()).includes("unreadable"), "Saved-project browser must explain unreadable storage without crashing");
     await unreadableStoragePage.close();
-    console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output."); numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
+    console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();
   } finally {
     if (browser) await browser.close();

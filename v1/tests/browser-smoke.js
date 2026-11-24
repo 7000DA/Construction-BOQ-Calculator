@@ -825,6 +825,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await persistencePage.locator("#name").fill("Close and Reopen Recovery");
     const persistedRow = persistencePage.locator(".section").first().locator("tbody tr").first();
     await persistedRow.locator("input.description").fill("Saved foundation excavation");
+    await persistedRow.locator("input.unit").fill("m");
     await persistedRow.locator("input.numeric").first().fill("125");
     await persistedRow.locator("input.numeric").nth(1).fill("300");
     await persistencePage.locator("#save").click();
@@ -840,7 +841,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await reopenedPage.locator("#grand").waitFor();
     assert.equal(await reopenedPage.locator("#name").inputValue(), "Close and Reopen Recovery", "Project name must recover after a fresh browser context opens");
     assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.description").inputValue(), "Saved foundation excavation", "BOQ description must recover after a fresh browser context opens");
+    assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.unit").inputValue(), "m", "BOQ unit must recover after a fresh browser context opens");
     assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.numeric").first().inputValue(), "125", "BOQ quantity must recover after a fresh browser context opens");
+    assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.numeric").nth(1).inputValue(), "300", "BOQ unit rate must recover after a fresh browser context opens");
     assert.ok((await reopenedPage.locator("#grand").textContent()).includes("37,500"), "Recovered project must preserve its calculated line total");
     await reopenedContext.close();
 

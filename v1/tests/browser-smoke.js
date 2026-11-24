@@ -56,6 +56,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator(".section").first().locator("tbody tr").count(), 2, "BOQ rows should persist after reload");
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Calculated grand total should persist after reload");
     assert.ok((await page.locator("#saveState").textContent()).includes("·"), "Last saved time should be visible after reload");
+    await page.locator("#units").selectOption("Imperial");
+    assert.equal(await page.locator(".section").first().locator("tbody tr").first().locator("input.numeric").nth(0).inputValue(), "2.5", "Changing unit system must not convert stored quantities");
 
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
@@ -116,6 +118,19 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     });
     await page.waitForFunction(() => document.querySelector("#name").value === "CI Smoke Project");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "JSON restore should recover project calculations");
+
+    const futureBackup = structuredClone(backup);
+    futureBackup.project.schemaVersion = 99;
+    const futureDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "future-version.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(futureBackup))
+    });
+    const rejectedDialog = await futureDialog;
+    assert.ok(rejectedDialog.message().includes("Invalid BOQ backup"), "Unsupported future backup versions should be rejected clearly");
+    await rejectedDialog.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected backup must not overwrite the current project");
 
     assert.deepEqual(pageErrors, [], "The page must not throw uncaught JavaScript errors");
     console.log("V1 browser tests passed: startup, calculation, persistence, language, sections, grouped Excel import/export and JSON backup/restore.");

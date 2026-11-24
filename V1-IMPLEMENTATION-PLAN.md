@@ -59,4 +59,6 @@ Do not merge this branch into `main` or change GitHub Pages publishing until the
 - Browser tests cover exceptions thrown by `localStorage.getItem`; startup and the saved-project browser must remain usable and report unreadable storage.
 - Browser tests verify malformed saved-project entries remain intact in storage and that deleting one saved project does not remove unrelated projects.
 - Latest completed workflow before the multi-project test addition: run `45380160997`, conclusion **success**, commit `cc38feac1426e0a7a7dda764fc006ffffb173d57`.
-- A new CI run is required for the latest multi-project test commit. PDF pagination and print CSS are still not a substitute for a human visual inspection of rendered PDF pages, including Arabic RTL text and long descriptions.
+- Latest multi-project and recovery browser-test run: `45380321752`, conclusion **success**, tested code commit `2e9861720875fdf550fa23e1bc405535da0e00ae`.
+- The latest CI measured 1,000-row Excel preview + import + render at **612 ms** in that CI run. This is a single environment-specific measurement, not a performance guarantee.
+- PDF pagination and print CSS are still not a substitute for a human visual inspection of rendered PDF pages, including Arabic RTL text and long descriptions.

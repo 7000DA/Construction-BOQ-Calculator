@@ -38,6 +38,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const first = page.locator(".section").first();
     await first.locator(".add-item").click();
     const row = first.locator("tbody tr").last();
+    assert.equal(await row.locator(".item-no").textContent(), "02", "Item numbers should increment automatically within a section");
     await row.locator("input.description").fill("Reinforced concrete");
     await row.locator("input.unit").fill("m3");
     await row.locator("input.numeric").nth(0).fill("2.5");
@@ -50,6 +51,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Project information should persist after reload");
     assert.equal(await page.locator(".section").first().locator("tbody tr").count(), 2, "BOQ rows should persist after reload");
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Calculated grand total should persist after reload");
+    assert.ok((await page.locator("#saveState").textContent()).includes("·"), "Last saved time should be visible after reload");
 
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();

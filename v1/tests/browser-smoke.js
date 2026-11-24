@@ -280,7 +280,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#excelFile").setInputFiles({
       name: "utf8-arabic-import.csv",
       mimeType: "text/csv",
-      buffer: Buffer.from("Section,Description,Unit,Quantity,Unit Rate\\nأعمال خرسانة,خرسانة مسلحة,m3,2,1500\\n", "utf8")
+      buffer: Buffer.from("Section,Description,Unit,Quantity,Unit Rate\nأعمال خرسانة,خرسانة مسلحة,m3,2,1500\n", "utf8")
     });
     await page.locator("#preview").waitFor({ state: "visible" });
     assert.equal(await page.locator("#previewRows tr").count(), 1, "UTF-8 CSV import should expose its populated data row");

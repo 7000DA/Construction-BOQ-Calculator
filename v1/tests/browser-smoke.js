@@ -571,12 +571,13 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await storagePage.locator("#saveState").textContent()).includes("Local save failed"), "Unavailable local storage must be reported without crashing");
     await storagePage.locator("#name").fill("Backup-only project");
     await storagePage.waitForTimeout(500);
-    storagePage.once("dialog", dialog => dialog.accept());
-    const saveFailureDialog = storagePage.waitForEvent("dialog");
+    let saveFailureMessage = "";
+    storagePage.on("dialog", async dialog => {
+      if (dialog.type() === "confirm") await dialog.accept();
+      else { saveFailureMessage = dialog.message(); await dialog.accept(); }
+    });
     await storagePage.locator("#newProject").click();
-    const saveFailure = await saveFailureDialog;
-    assert.ok(saveFailure.message().includes("could not save this project"), "A failed save must be reported before starting another project");
-    await saveFailure.accept();
+    assert.ok(saveFailureMessage.includes("could not save this project"), "A failed save must be reported before starting another project");
     assert.equal(await storagePage.locator("#name").inputValue(), "Backup-only project", "Starting a new project after a failed save must preserve the unsaved project in the current workspace");
     const [fallbackDownload] = await Promise.all([
       storagePage.waitForEvent("download"),

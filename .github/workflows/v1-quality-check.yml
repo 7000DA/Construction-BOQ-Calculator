@@ -28,10 +28,14 @@ jobs:
         run: npm install --no-save playwright xlsx pdf-lib
       - name: Install Chromium
         run: npx playwright install chromium --only-shell
+      - name: Install Edge and WebKit engines
+        run: npx playwright install msedge webkit --with-deps
       - name: Install PDF rasterizer
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - name: Run browser smoke tests
         run: node v1/tests/browser-smoke.js
+      - name: Run cross-browser acceptance tests
+        run: node v1/tests/browser-compat.js
       - name: Render PDF pages for visual review
         if: always()
         run: |

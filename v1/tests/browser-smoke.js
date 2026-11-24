@@ -249,7 +249,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#cancelImport").click();
     await page.locator("#preview").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".section").count(), 4, "Reselecting the same Excel file must reopen preview without changing data");
-    await page.locator("#excelFile").setInputFiles({ name: "simple-import.csv", mimeType: "text/csv", buffer: Buffer.from("Section,Description,Unit,Quantity,Unit Rate\\nCSV review,CSV item,m,1,1\\n") });
+    await page.locator("#excelFile").setInputFiles({ name: "simple-import.csv", mimeType: "text/csv", buffer: Buffer.from("Section,Description,Unit,Quantity,Unit Rate\nCSV review,CSV item,m,1,1\n") });
     await page.locator("#preview").waitFor({ state: "visible" });
     assert.equal(await page.locator("#previewRows tr").count(), 1, "CSV import should parse and preview its data row");
     await page.locator("#cancelImport").click();

@@ -131,6 +131,23 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator(".section").count(), 4, "Rejected Excel workbooks must not change existing sections");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Rejected Excel workbooks must not change existing totals");
 
+    const missingUnitBook = XLSX.utils.book_new();
+    const missingUnitSheet = XLSX.utils.aoa_to_sheet([
+      ["Description", "Quantity", "Unit Rate"],
+      ["Missing unit", 1, 100]
+    ]);
+    XLSX.utils.book_append_sheet(missingUnitBook, missingUnitSheet, "BOQ");
+    const missingUnitDialog = page.waitForEvent("dialog");
+    await page.locator("#excelFile").setInputFiles({
+      name: "missing-unit-column.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(missingUnitBook, { type: "buffer", bookType: "xlsx" })
+    });
+    const rejectedMissingUnit = await missingUnitDialog;
+    assert.ok(rejectedMissingUnit.message().includes("Could not read this workbook"), "Unit Rate must never be misidentified as the required Unit column");
+    await rejectedMissingUnit.accept();
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Missing required Excel columns must not alter project totals");
+
     const duplicateBook = XLSX.utils.book_new();
     const duplicateSheet = XLSX.utils.aoa_to_sheet([
       ["Section", "Description", "Unit", "Quantity", "Unit Rate"],

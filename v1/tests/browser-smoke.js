@@ -578,6 +578,27 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(typeof migratedLegacy.savedAt === "string" && Number.isFinite(Date.parse(migratedLegacy.savedAt)), "Saving a legacy project should populate a valid savedAt timestamp");
     await legacyPage.close();
 
+
+    const multiProjectPage = await context.newPage();
+    await multiProjectPage.addInitScript(() => {
+      const base = { schemaVersion: 1, info: { name: "Saved A", ref: "", client: "", contractor: "", consultant: "", location: "", date: "2026-11-24", currency: "EGP", units: "Metric" }, sections: [] };
+      localStorage.setItem("professional-boq-v1-projects", JSON.stringify([
+        { ...base, id: "saved-a" },
+        { ...base, id: "saved-b", info: { ...base.info, name: "Saved B" } }
+      ]));
+    });
+    await multiProjectPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await multiProjectPage.locator("#grand").waitFor();
+    await multiProjectPage.locator("#open").click();
+    assert.equal(await multiProjectPage.locator("#projectList .saved").count(), 2, "The project browser must retain multiple independent saved projects");
+    multiProjectPage.once("dialog", dialog => dialog.accept());
+    await multiProjectPage.locator("#projectList .saved").first().locator(".danger").click();
+    assert.equal(await multiProjectPage.locator("#projectList .saved").count(), 1, "Deleting one saved project must leave the other project intact");
+    assert.ok((await multiProjectPage.locator("#projectList").textContent()).includes("Saved B"), "The remaining saved project must retain its own identity and metadata");
+    const retainedIds = await multiProjectPage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects")).map(project => project.id));
+    assert.deepEqual(retainedIds, ["saved-b"], "Deleting a project must not rewrite or remove unrelated saved projects");
+    await multiProjectPage.close();
+
     const storageContext = await browser.newContext();
     const storagePage = await storageContext.newPage();
     await storagePage.addInitScript(() => {

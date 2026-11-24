@@ -197,6 +197,18 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator(".section").count(), 4, "Rejected Excel workbooks must not change existing sections");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Rejected Excel workbooks must not change existing totals");
 
+    const invalidBinaryDialog = page.waitForEvent("dialog");
+    await page.locator("#excelFile").setInputFiles({
+      name: "corrupt-binary.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: Buffer.from("this is not an XLSX archive")
+    });
+    const rejectedBinary = await invalidBinaryDialog;
+    assert.ok(rejectedBinary.message().includes("Could not read this workbook"), "A corrupt binary Excel file must be rejected with a clear error");
+    await rejectedBinary.accept();
+    assert.equal(await page.locator(".section").count(), 4, "A corrupt binary workbook must not change existing sections");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "A corrupt binary workbook must not change existing totals");
+
     const missingUnitBook = XLSX.utils.book_new();
     const missingUnitSheet = XLSX.utils.aoa_to_sheet([
       ["Description", "Quantity", "Unit Rate"],
@@ -511,6 +523,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await recoveryPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
     await recoveryPage.locator("#grand").waitFor();
     assert.equal(await recoveryPage.locator(".section").count(), 2, "Corrupt saved projects must not prevent a fresh project from opening");
+    assert.ok((await recoveryPage.locator("#saveState").textContent()).includes("unreadable"), "Valid JSON containing invalid saved-project entries must be treated as unreadable");
+    assert.equal(await recoveryPage.evaluate(() => JSON.parse(localStorage.getItem("professional-boq-v1-projects")).length), 2, "Invalid saved-project entries must be preserved rather than silently overwritten");
     await recoveryPage.evaluate(() => localStorage.removeItem("professional-boq-v1-projects"));
     await recoveryPage.locator("#lang").click();
     await recoveryPage.locator("#open").click();
@@ -615,6 +629,20 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await unreadableStoragePage.locator("#open").click();
     assert.ok((await unreadableStoragePage.locator("#projectList").textContent()).includes("unreadable"), "Saved-project browser must explain unreadable storage without crashing");
     await unreadableStoragePage.close();
+    const blockedReadPage = await context.newPage();
+    const blockedReadErrors = [];
+    blockedReadPage.on("pageerror", error => blockedReadErrors.push(error.message));
+    await blockedReadPage.addInitScript(() => {
+      Storage.prototype.getItem = function () { throw new DOMException("Storage access denied", "SecurityError"); };
+    });
+    await blockedReadPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await blockedReadPage.locator("#grand").waitFor();
+    assert.ok((await blockedReadPage.locator("#saveState").textContent()).includes("unreadable"), "A localStorage getItem exception must be reported as unreadable storage");
+    await blockedReadPage.locator("#open").click();
+    assert.ok((await blockedReadPage.locator("#projectList").textContent()).includes("unreadable"), "Project browsing must handle localStorage getItem exceptions");
+    assert.deepEqual(blockedReadErrors, [], "A localStorage getItem exception must not crash application startup");
+    await blockedReadPage.close();
+
     console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();
   } finally {

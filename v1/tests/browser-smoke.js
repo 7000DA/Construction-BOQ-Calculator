@@ -93,6 +93,28 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator(".section").count(), 4, "Excel import should preserve distinct section groups");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));
 
+    const duplicateBook = XLSX.utils.book_new();
+    const duplicateSheet = XLSX.utils.aoa_to_sheet([
+      ["Section", "Description", "Unit", "Quantity", "Unit Rate"],
+      ["Concrete", "Duplicate-section check", "m3", 0, 0]
+    ]);
+    XLSX.utils.book_append_sheet(duplicateBook, duplicateSheet, "BOQ");
+    await page.locator("#excelFile").setInputFiles({
+      name: "duplicate-section.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(duplicateBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    assert.equal(await page.locator(".section").count(), 4, "Importing an existing section name must not create a duplicate section");
+    const concreteRows = await page.locator(".section").evaluateAll(els => {
+      const section = els.find(el => el.querySelector(".section-name").value === "Concrete");
+      return section ? section.querySelectorAll("tbody tr").length : 0;
+    });
+    assert.equal(concreteRows, 2, "Rows imported into a matching section must be merged into it");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "A zero-value imported row must not change totals");
+
     const [excelDownload] = await Promise.all([
       page.waitForEvent("download"),
       page.locator("#excelOut").click()
@@ -132,8 +154,26 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await rejectedDialog.accept();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected backup must not overwrite the current project");
 
+    const negativeBackup = structuredClone(backup);
+    negativeBackup.project.sections[0].items[0].qty = -1;
+    const invalidDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "negative-quantity.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(negativeBackup))
+    });
+    const invalidRestore = await invalidDialog;
+    assert.ok(invalidRestore.message().includes("Invalid BOQ backup"), "Negative quantities in JSON backups must be rejected");
+    await invalidRestore.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected invalid numeric backup must preserve the current project");
+
+    await page.emulateMedia({ media: "print" });
+    assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");
+    assert.equal(await page.locator(".section").count(), 4, "Print layout must retain BOQ sections");
+    assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Print layout must retain the grand total");
+
     assert.deepEqual(pageErrors, [], "The page must not throw uncaught JavaScript errors");
-    console.log("V1 browser tests passed: startup, calculation, persistence, language, sections, grouped Excel import/export and JSON backup/restore.");
+    console.log("V1 browser tests passed: startup, calculation, persistence, language, sections, grouped and duplicate-section Excel import/export, strict JSON restore and print layout.");
     await context.close();
   } finally {
     if (browser) await browser.close();

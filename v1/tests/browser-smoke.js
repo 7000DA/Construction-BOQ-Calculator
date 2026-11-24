@@ -334,6 +334,27 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const bulkExportBook = XLSX.readFile(await bulkExportDownload.path());
     const bulkExportRows = XLSX.utils.sheet_to_json(bulkExportBook.Sheets.BOQ, { header: 1, defval: "" });
     assert.equal(bulkExportRows.filter(row => String(row[1] || "").trim() && String(row[2] || "").trim() && typeof row[3] === "number" && typeof row[4] === "number").length, 129, "Excel export should preserve every valid item in a large BOQ");
+
+    const performanceBook = XLSX.utils.book_new();
+    const performanceRows = [["Section", "Description", "Unit", "Quantity", "Unit Rate"]];
+    for (let index = 1; index <= 1000; index++) performanceRows.push(["Performance 1000", "Performance item " + index, "m", 1, 1]);
+    XLSX.utils.book_append_sheet(performanceBook, XLSX.utils.aoa_to_sheet(performanceRows), "BOQ");
+    const performanceStarted = Date.now();
+    await page.locator("#excelFile").setInputFiles({
+      name: "performance-1000-items.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(performanceBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#previewRows tr").count(), 1000, "Large import preview should display all 1000 rows");
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    const performanceSection = page.locator(".section").last();
+    assert.equal(await performanceSection.locator("tbody tr").count(), 1000, "The app should render all 1000 imported items");
+    console.log("BOQ performance benchmark: 1000-row Excel preview + import + render = " + (Date.now() - performanceStarted) + " ms");
+    page.once("dialog", dialog => dialog.accept());
+    await performanceSection.locator(".section-head .delete").click();
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"));
     page.once("dialog", dialog => dialog.accept());
     await bulkSection.locator(".section-head .delete").click();
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));

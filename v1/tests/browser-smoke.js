@@ -50,6 +50,21 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
+    await row.locator("input.numeric").nth(1).fill("2100");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,250"));
+    await row.locator("input.numeric").nth(1).fill("2000");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
+
+    await first.locator(".add-item").click();
+    const disposableRow = first.locator("tbody tr").last();
+    await disposableRow.locator("input.description").fill("Temporary test item");
+    await disposableRow.locator("input.unit").fill("m");
+    await disposableRow.locator("input.numeric").nth(0).fill("1");
+    await disposableRow.locator("input.numeric").nth(1).fill("100");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,100"));
+    await disposableRow.locator(".remove").click();
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
+
     await row.locator("input.numeric").nth(0).fill("-2");
     assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Negative quantities should be visibly invalid");
     assert.ok((await page.locator("#grand").textContent()).includes("0.00"), "Invalid negative quantities must be excluded from totals");
@@ -59,6 +74,10 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#grand").waitFor();
     assert.equal(await page.locator(".section").first().locator("tbody tr").last().locator("input.numeric").nth(0).inputValue(), "2.5", "Invalid edits must not poison the last valid saved quantity");
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Reload should recover the last valid saved calculation");
+    await page.locator("#currency").selectOption("USD");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("$5,000.00"));
+    await page.locator("#currency").selectOption("EGP");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
     await page.locator("#grand").waitFor();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Project information should persist after reload");
     assert.equal(await page.locator(".section").first().locator("tbody tr").count(), 2, "BOQ rows should persist after reload");
@@ -86,9 +105,18 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
 
     await page.locator("#addSection").click();
     assert.equal(await page.locator(".section").count(), 3, "Adding a section should create one independent section");
+    const independentSection = page.locator(".section").last();
+    const independentRow = independentSection.locator("tbody tr").last();
+    await independentRow.locator("input.description").fill("Independent section item");
+    await independentRow.locator("input.unit").fill("m2");
+    await independentRow.locator("input.numeric").nth(0).fill("1");
+    await independentRow.locator("input.numeric").nth(1).fill("300");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,300"));
+    assert.ok((await independentSection.locator(".section-total").textContent()).includes("300"), "Section total should be independent from the grand total");
     page.once("dialog", dialog => dialog.accept());
-    await page.locator(".section").last().locator(".section-head .delete").click();
+    await independentSection.locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), 2, "Deleting a section should remove only that section");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
     await page.locator("#lang").click(); // Use English numeric formatting for deterministic total assertions.
 
     const importBook = XLSX.utils.book_new();
@@ -180,6 +208,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const exportedRows = XLSX.utils.sheet_to_json(exportedBook.Sheets.BOQ, { header: 1, defval: "" });
     assert.ok(exportedRows.some(row => row[0] === "Concrete" && row[1] === "Imported concrete"), "Excel export should retain imported section names and items");
     assert.ok(exportedRows.some(row => row[4] === "Grand total" && Number(row[5]) === 5700), "Excel export should include the correct grand total");
+    assert.ok(exportedRows.some(row => row[0] === "Project" && row[1] === "CI Smoke Project"), "Excel export should include project metadata");
+    assert.equal(exportedRows.filter(row => String(row[1] || "").trim()).length, 4, "Excel export should contain only complete BOQ items and no blank item rows");
 
     const [jsonDownload] = await Promise.all([
       page.waitForEvent("download"),

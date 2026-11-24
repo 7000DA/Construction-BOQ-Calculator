@@ -338,14 +338,16 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     fs.writeFileSync(path.join(artifactDir, "boq-report-en.pdf"), multiPagePdf);
     const multiPageDocument = await require("pdf-lib").PDFDocument.load(multiPagePdf);
     assert.ok(multiPageDocument.getPageCount() >= 2, "A large BOQ report must paginate into multiple PDF pages");
+    await page.emulateMedia({ media: "screen" });
     await page.locator("#lang").click();
     assert.equal(await page.locator("html").getAttribute("dir"), "rtl", "Arabic PDF must use RTL document direction");
+    await page.emulateMedia({ media: "print" });
     const arabicPdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
     fs.writeFileSync(path.join(artifactDir, "boq-report-ar.pdf"), arabicPdf);
     const arabicDocument = await require("pdf-lib").PDFDocument.load(arabicPdf);
     assert.ok(arabicDocument.getPageCount() >= 2, "The Arabic BOQ report must paginate across multiple PDF pages");
-    await page.locator("#lang").click();
     await page.emulateMedia({ media: "screen" });
+    await page.locator("#lang").click();
     const bulkSection = page.locator(".section").last();
     assert.equal(await bulkSection.locator("tbody tr").count(), 125, "All valid bulk rows should be imported");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"));

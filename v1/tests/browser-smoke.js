@@ -287,6 +287,13 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await recoveryPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
     await recoveryPage.locator("#grand").waitFor();
     assert.equal(await recoveryPage.locator(".section").count(), 2, "Corrupt saved projects must not prevent a fresh project from opening");
+    await recoveryPage.evaluate(() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; });
+    await recoveryPage.locator("#print").click();
+    assert.equal(await recoveryPage.evaluate(() => window.__printCalled), false, "Formal reports must require a project name");
+    assert.ok(await recoveryPage.locator("#name").evaluate(el => el.validity.customError), "Missing project name should show a validation message");
+    await recoveryPage.locator("#name").fill("Recovery project");
+    await recoveryPage.locator("#print").click();
+    assert.equal(await recoveryPage.evaluate(() => window.__printCalled), true, "A named project should be printable");
     assert.deepEqual(recoveryErrors, [], "Corrupt local project data must not cause uncaught errors");
 
     const storageContext = await browser.newContext();

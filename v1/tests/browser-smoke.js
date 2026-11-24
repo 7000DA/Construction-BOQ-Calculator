@@ -48,6 +48,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
+    await row.locator("input.numeric").nth(0).fill("-2");
+    assert.ok(await row.locator("input.numeric").nth(0).evaluate(el => el.classList.contains("invalid-input")), "Negative quantities should be visibly invalid");
+    assert.ok((await page.locator("#grand").textContent()).includes("0.00"), "Invalid negative quantities must be excluded from totals");
+    await row.locator("input.numeric").nth(0).fill("2.5");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
     await page.waitForTimeout(700);
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -85,7 +90,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       ["Section", "Description", "Unit", "Quantity", "Unit Rate"],
       ["Concrete", "Imported concrete", "m3", 1, 500],
       ["Finishes", "Imported plaster", "m2", 2, 100],
-      ["Finishes", "Invalid row", "", 1, 100]
+      ["Finishes", "Invalid row", "", 1, 100],
+      ["Finishes", "Whitespace quantity", "m2", "   ", 100]
     ]);
     XLSX.utils.book_append_sheet(importBook, importSheet, "BOQ");
     const importBuffer = XLSX.write(importBook, { type: "buffer", bookType: "xlsx" });
@@ -95,9 +101,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       buffer: importBuffer
     });
     await page.locator("#preview").waitFor({ state: "visible" });
-    assert.equal(await page.locator("#previewRows tr").count(), 3, "Every imported row must be visible in the preview");
+    assert.equal(await page.locator("#previewRows tr").count(), 4, "Every imported row must be visible in the preview");
     assert.ok((await page.locator("#previewInfo").textContent()).includes("2 valid"), "Import preview should report valid rows");
-    assert.ok((await page.locator("#previewInfo").textContent()).includes("1 invalid"), "Import preview should report invalid rows");
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("2 invalid"), "Import preview should report invalid rows, including whitespace-only numbers");
     await page.locator("#confirmImport").click();
     await page.locator("#preview").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".section").count(), 4, "Excel import should preserve distinct section groups");
@@ -106,7 +112,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const duplicateBook = XLSX.utils.book_new();
     const duplicateSheet = XLSX.utils.aoa_to_sheet([
       ["Section", "Description", "Unit", "Quantity", "Unit Rate"],
-      ["Concrete", "Duplicate-section check", "m3", 0, 0]
+      ["  concrete  ", "Duplicate-section check", "m3", 0, 0]
     ]);
     XLSX.utils.book_append_sheet(duplicateBook, duplicateSheet, "BOQ");
     await page.locator("#excelFile").setInputFiles({
@@ -177,13 +183,43 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await invalidRestore.accept();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected invalid numeric backup must preserve the current project");
 
+    const whitespaceBackup = structuredClone(backup);
+    whitespaceBackup.project.sections[0].items[0].qty = "   ";
+    const whitespaceDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "whitespace-quantity.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(whitespaceBackup))
+    });
+    const rejectedWhitespace = await whitespaceDialog;
+    assert.ok(rejectedWhitespace.message().includes("Invalid BOQ backup"), "Whitespace-only numeric values in JSON backups must be rejected");
+    await rejectedWhitespace.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected whitespace backup must preserve current project");
+
+    const duplicateIdBackup = structuredClone(backup);
+    duplicateIdBackup.project.sections[0].items[0].id = duplicateIdBackup.project.sections[0].id;
+    const duplicateIdDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "duplicate-ids.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(duplicateIdBackup))
+    });
+    const rejectedDuplicateId = await duplicateIdDialog;
+    assert.ok(rejectedDuplicateId.message().includes("Invalid BOQ backup"), "Duplicate item identifiers must be rejected");
+    await rejectedDuplicateId.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected duplicate-ID backup must preserve current project");
+
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");
+    assert.equal(await page.locator(".section-head .delete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must hide destructive section controls");
     assert.equal(await page.locator(".section").count(), 4, "Print layout must retain BOQ sections");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Print layout must retain the grand total");
+    const pdf = await page.pdf({ format: "A4", printBackground: true });
+    assert.ok(pdf.subarray(0, 5).toString() === "%PDF-", "Print output should produce a valid PDF document");
+    assert.ok(pdf.length > 1000, "PDF report should contain rendered content");
 
     assert.deepEqual(pageErrors, [], "The page must not throw uncaught JavaScript errors");
-    console.log("V1 browser tests passed: startup, calculation, persistence, language, sections, grouped and duplicate-section Excel import/export, strict JSON restore and print layout.");
+    console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();
   } finally {
     if (browser) await browser.close();

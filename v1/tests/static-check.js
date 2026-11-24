@@ -8,6 +8,6 @@ const jsIds = [...js.matchAll(/\$\("#([A-Za-z][A-Za-z0-9_-]*)"\)/g)].map(m => m[
 const missing = [...new Set(jsIds)].filter(id => !htmlIds.has(id));
 assert.deepEqual(missing, [], "JavaScript references IDs missing from v1/index.html");
 assert.ok(js.includes('$$("[data-en]").forEach('), "Language labels must be selected as a collection");
-assert.ok(!js.includes('$("[data-en]").forEach('), "Single-element selector must not be used as a collection");
+assert.ok(!/(^|[^$])\$\("\[data-en\]"\)\.forEach/.test(js), "Single-element selector must not be used as a collection");
 assert.ok(js.includes("schemaVersion"), "Project schema versioning must remain present");
 console.log("V1 static checks passed.");

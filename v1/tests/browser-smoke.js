@@ -602,7 +602,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
         assert.ok(control.width > 0 && control.height >= 38, "Section toolbar controls must remain visible and finger-accessible at " + width + "px");
         assert.ok(control.left >= -1 && control.right <= width + 1, "Section toolbar controls must stay inside the viewport at " + width + "px");
       }
-      assert.equal(toolbarMetrics.inputFont, "16px", "Mobile editable fields should use 16px text to avoid iOS input zoom");
+      assert.equal(toolbarMetrics.inputFont, "16px", "Mobile section name field should use 16px text to avoid iOS input zoom");
+      const editorFonts = await page.locator(".fields input, .fields select, .section .cell").evaluateAll(nodes => nodes.map(node => getComputedStyle(node).fontSize));
+      assert.ok(editorFonts.every(size => size === "16px"), "Project and BOQ editor fields should use 16px text on mobile");
       const actionButtons = await page.locator(".actions button").evaluateAll(nodes => nodes.map(node => {
         const r = node.getBoundingClientRect(); return { left:r.left, right:r.right, width:r.width };
       }));
@@ -618,6 +620,22 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await temporarySection.locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), sectionsBeforeToolbarTest, "Delete section must remain usable on a 320px viewport");
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator("#lang").click();
+    assert.equal(await page.locator("html").getAttribute("dir"), "rtl", "Arabic interface must set document direction to RTL on mobile");
+    assert.equal(await page.locator("html").getAttribute("lang"), "ar", "Arabic interface must expose the correct document language");
+    assert.equal(await page.locator(".section td").first().evaluate(el => getComputedStyle(el).textAlign), "right", "Arabic BOQ table cells must align right");
+    assert.equal(await page.locator(".section td.amount").first().evaluate(el => getComputedStyle(el).textAlign), "left", "Arabic amount cells must preserve left-aligned numeric totals");
+    for (const viewport of [{ width:390, height:844 }, { width:844, height:390 }, { width:320, height:700 }]) {
+      await page.setViewportSize(viewport);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Arabic RTL page must not overflow horizontally at " + viewport.width + "px");
+      const rtlWrap = page.locator(".table-wrap").first();
+      const metrics = await rtlWrap.evaluate(el => ({ client:el.clientWidth, scroll:el.scrollWidth, overflow:getComputedStyle(el).overflowX }));
+      assert.ok(metrics.scroll > metrics.client && ["auto","scroll"].includes(metrics.overflow), "Arabic BOQ table must scroll within its own wrapper at " + viewport.width + "px");
+      await rtlWrap.evaluate(el => { el.scrollLeft = el.scrollLeft < 0 ? -el.scrollWidth : el.scrollWidth; });
+      assert.ok(await rtlWrap.evaluate(el => Math.abs(el.scrollLeft) > 0), "Arabic table must allow access to its far columns at " + viewport.width + "px");
+    }
+    await page.locator("#lang").click();
+    assert.equal(await page.locator("html").getAttribute("dir"), "ltr", "Switching back to English must restore LTR direction");
     assert.equal(pageErrors.length, 0, "Mobile BOQ interactions must not produce browser errors");
     await page.setViewportSize(originalViewport);
 
@@ -788,6 +806,35 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await blockedReadPage.locator("#projectList").textContent()).includes("unreadable"), "Project browsing must handle localStorage getItem exceptions");
     assert.deepEqual(blockedReadErrors, [], "A localStorage getItem exception must not crash application startup");
     await blockedReadPage.close();
+
+    const persistenceContext = await browser.newContext();
+    const persistencePage = await persistenceContext.newPage();
+    await persistencePage.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+      route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
+    );
+    await persistencePage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await persistencePage.locator("#grand").waitFor();
+    await persistencePage.locator("#name").fill("Close and Reopen Recovery");
+    const persistedRow = persistencePage.locator(".section").first().locator("tbody tr").first();
+    await persistedRow.locator("input.description").fill("Saved foundation excavation");
+    await persistedRow.locator("input.numeric").first().fill("125");
+    await persistedRow.locator("input.numeric").nth(1).fill("300");
+    await persistencePage.locator("#save").click();
+    assert.ok((await persistencePage.locator("#saveState").textContent()).includes("·"), "Explicit save should report a saved timestamp before closing");
+    const persistedState = await persistenceContext.storageState();
+    await persistenceContext.close();
+    const reopenedContext = await browser.newContext({ storageState: persistedState });
+    const reopenedPage = await reopenedContext.newPage();
+    await reopenedPage.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+      route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
+    );
+    await reopenedPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await reopenedPage.locator("#grand").waitFor();
+    assert.equal(await reopenedPage.locator("#name").inputValue(), "Close and Reopen Recovery", "Project name must recover after a fresh browser context opens");
+    assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.description").inputValue(), "Saved foundation excavation", "BOQ description must recover after a fresh browser context opens");
+    assert.equal(await reopenedPage.locator(".section").first().locator("tbody tr").first().locator("input.numeric").first().inputValue(), "125", "BOQ quantity must recover after a fresh browser context opens");
+    assert.ok((await reopenedPage.locator("#grand").textContent()).includes("37,500"), "Recovered project must preserve its calculated line total");
+    await reopenedContext.close();
 
     console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();

@@ -50,3 +50,13 @@ Do not merge this branch into `main` or change GitHub Pages publishing until the
 
 - Latest browser test run after the bilingual precision warning update: `45366170089`, conclusion **success**, code head `78d11763d8ee66ee742a677aa071260590fd9f33`.
 - The user-facing warning now states that values exceeding Excel's 15-significant-digit precision are exported as text to preserve digits and therefore are not usable as numeric operands in Excel formulas; JSON backup is identified as the exact source.
+
+
+## Additional recovery and import QA (2026-11-24)
+
+- Saved-project storage now validates every entry before returning the project list. A valid JSON array containing malformed or unsupported project records is treated as unreadable storage; the application opens a recoverable workspace but does not silently replace the original stored data.
+- Browser tests cover a corrupt binary XLSX upload and verify that it is rejected without changing existing BOQ sections or totals.
+- Browser tests cover exceptions thrown by `localStorage.getItem`; startup and the saved-project browser must remain usable and report unreadable storage.
+- Browser tests verify malformed saved-project entries remain intact in storage and that deleting one saved project does not remove unrelated projects.
+- Latest completed workflow before the multi-project test addition: run `45380160997`, conclusion **success**, commit `cc38feac1426e0a7a7dda764fc006ffffb173d57`.
+- A new CI run is required for the latest multi-project test commit. PDF pagination and print CSS are still not a substitute for a human visual inspection of rendered PDF pages, including Arabic RTL text and long descriptions.

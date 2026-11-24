@@ -588,6 +588,19 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     ]);
     const fallbackBackup = JSON.parse(fs.readFileSync(await fallbackDownload.path(), "utf8"));
     assert.equal(fallbackBackup.project.info.name, "Backup-only project", "JSON backup must remain available when local storage fails");
+    const restoreFailureBackup = { app: "Professional BOQ", schemaVersion: 1, project: { schemaVersion: 1, id: "restore-target", info: { name: "Imported target", ref: "", client: "", contractor: "", consultant: "", location: "", date: "2026-11-24", currency: "EGP", units: "Metric" }, sections: [] } };
+    await storagePage.locator("#jsonFile").setInputFiles({ name: "restore-target.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(restoreFailureBackup)) });
+    assert.equal(await storagePage.locator("#name").inputValue(), "Backup-only project", "A failed JSON restore save must roll back to the current in-memory project");
+    const closingPage = await context.newPage();
+    await closingPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await closingPage.locator("#grand").waitFor();
+    await closingPage.locator("#name").fill("Saved during page exit");
+    await closingPage.close({ runBeforeUnload: true });
+    const verifyExitPage = await context.newPage();
+    await verifyExitPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await verifyExitPage.locator("#grand").waitFor();
+    assert.equal(await verifyExitPage.locator("#name").inputValue(), "Saved during page exit", "Pending project edits must be saved during the beforeunload lifecycle");
+    await verifyExitPage.close();
     await storageContext.close();
     await recoveryPage.close();
 

@@ -406,6 +406,37 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const stressSection = page.locator(".section").last();
     assert.equal(await stressSection.locator("tbody tr").count(), 5000, "The application must render all 5000 imported items");
     console.log("BOQ stress benchmark: 5000-row Excel preview + import + render = " + (Date.now() - stressStarted) + " ms");
+
+    const [stressExportDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#excelOut").click()
+    ]);
+    const stressExportPath = await stressExportDownload.path();
+    const stressExportBook = XLSX.readFile(stressExportPath);
+    const stressExportRows = XLSX.utils.sheet_to_json(stressExportBook.Sheets.BOQ, { header: 1, defval: "" });
+    const stressExportItems = stressExportRows.filter(row => row[0] === "Stress 5000" && String(row[1]).startsWith("Stress item "));
+    assert.equal(stressExportItems.length, 5000, "Excel export must preserve all 5000 imported BOQ rows");
+    assert.equal(stressExportItems[0][1], "Stress item 1", "Large export must preserve the first row");
+    assert.equal(stressExportItems[4999][1], "Stress item 5000", "Large export must preserve the last row");
+    assert.ok(stressExportRows.some(row => row[4] === "Grand total" && Number(row[5]) === 10700), "Large Excel export must contain the exact project grand total");
+
+    const roundTripContext = await browser.newContext();
+    const roundTripPage = await roundTripContext.newPage();
+    await roundTripPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await roundTripPage.locator("#grand").waitFor();
+    await roundTripPage.locator("#excelFile").setInputFiles({
+      name: "boq-5000-row-round-trip.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: fs.readFileSync(stressExportPath)
+    });
+    await roundTripPage.locator("#preview").waitFor({ state: "visible", timeout: 60000 });
+    assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5004, "Round-trip preview must include the four existing items and all 5000 stress rows");
+    await roundTripPage.locator("#confirmImport").click();
+    await roundTripPage.locator("#preview").waitFor({ state: "hidden", timeout: 60000 });
+    const roundTripStressSection = roundTripPage.locator(".section").filter({ has: roundTripPage.locator(".section-name") }).filter({ hasText: "Stress 5000" });
+    assert.equal(await roundTripStressSection.locator("tbody tr").count(), 5000, "Round-trip import must reconstruct all 5000 stress rows");
+    assert.ok((await roundTripPage.locator("#grand").textContent()).includes("10,700"), "Round-trip import must reconstruct the project total");
+    await roundTripContext.close();
     page.once("dialog", dialog => dialog.accept());
     await stressSection.locator(".section-head .delete").click();
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"), null, { timeout: 60000 });

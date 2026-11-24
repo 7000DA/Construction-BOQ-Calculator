@@ -281,6 +281,19 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await rejectedWhitespace.accept();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected whitespace backup must preserve current project");
 
+    const oversizedNumberBackup = structuredClone(backup);
+    oversizedNumberBackup.project.sections[0].items[0].qty = "1e101";
+    const oversizedNumberDialog = page.waitForEvent("dialog");
+    await page.locator("#jsonFile").setInputFiles({
+      name: "oversized-number.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(oversizedNumberBackup))
+    });
+    const rejectedOversizedNumber = await oversizedNumberDialog;
+    assert.ok(rejectedOversizedNumber.message().includes("Invalid BOQ backup"), "Unsupported oversized decimal exponents must be rejected");
+    await rejectedOversizedNumber.accept();
+    assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Rejected oversized-number backup must preserve current project");
+
     const duplicateIdBackup = structuredClone(backup);
     duplicateIdBackup.project.sections[0].items[0].id = duplicateIdBackup.project.sections[0].id;
     const duplicateIdDialog = page.waitForEvent("dialog");

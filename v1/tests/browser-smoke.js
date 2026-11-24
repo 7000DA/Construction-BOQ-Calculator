@@ -631,8 +631,12 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       const rtlWrap = page.locator(".table-wrap").first();
       const metrics = await rtlWrap.evaluate(el => ({ client:el.clientWidth, scroll:el.scrollWidth, overflow:getComputedStyle(el).overflowX }));
       assert.ok(metrics.scroll > metrics.client && ["auto","scroll"].includes(metrics.overflow), "Arabic BOQ table must scroll within its own wrapper at " + viewport.width + "px");
-      await rtlWrap.evaluate(el => { el.scrollLeft = el.scrollLeft < 0 ? -el.scrollWidth : el.scrollWidth; });
+      await rtlWrap.evaluate(el => { el.scrollLeft = -el.scrollWidth; });
       assert.ok(await rtlWrap.evaluate(el => Math.abs(el.scrollLeft) > 0), "Arabic table must allow access to its far columns at " + viewport.width + "px");
+      if (viewport.width === 390) {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({ path: path.resolve(artifactDir, "boq-mobile-ar-390.png"), fullPage: true });
+      }
     }
     await page.locator("#lang").click();
     assert.equal(await page.locator("html").getAttribute("dir"), "ltr", "Switching back to English must restore LTR direction");

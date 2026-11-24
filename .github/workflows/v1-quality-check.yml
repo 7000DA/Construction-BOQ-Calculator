@@ -25,7 +25,7 @@ jobs:
       - name: Check HTML and JavaScript integration
         run: node v1/tests/static-check.js
       - name: Install browser test dependency
-        run: npm install --no-save playwright
+        run: npm install --no-save playwright xlsx
       - name: Install Chromium
         run: npx playwright install chromium --only-shell
       - name: Run browser smoke tests

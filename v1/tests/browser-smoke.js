@@ -430,7 +430,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       buffer: fs.readFileSync(stressExportPath)
     });
     await roundTripPage.locator("#preview").waitFor({ state: "visible", timeout: 60000 });
-    assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5000, "Round-trip preview must include all 5000 exported stress rows");
+    assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5005, "Round-trip preview must include the five starter rows and all 5000 exported stress rows");
     await roundTripPage.locator("#confirmImport").click();
     await roundTripPage.locator("#preview").waitFor({ state: "hidden", timeout: 60000 });
     const roundTripStressSection = roundTripPage.locator(".section").filter({ has: roundTripPage.locator(".section-name") }).filter({ hasText: "Stress 5000" });

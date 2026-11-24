@@ -266,6 +266,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");
     assert.equal(await page.locator(".section-head .delete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must hide destructive section controls");
+    assert.equal(await page.locator(".section tbody tr.incomplete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must omit incomplete BOQ rows");
     assert.equal(await page.locator(".section").count(), 4, "Print layout must retain BOQ sections");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Print layout must retain the grand total");
     const pdf = await page.pdf({ format: "A4", printBackground: true });

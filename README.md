@@ -11,6 +11,10 @@ A lightweight, browser-based Bill of Quantities (BOQ) calculator for constructio
 - Export the estimate as a CSV file that can be opened in spreadsheet software
 - Runs locally in your browser; no account, server, or external dependency required
 
+## Professional V1 candidate
+
+The in-progress Professional BOQ V1 candidate and its release gates are documented in [V1 Release Readiness](V1-RELEASE-READINESS.md). This candidate is under review and is not yet approved for production.
+
 ## Run locally
 
 1. Download or clone this repository.

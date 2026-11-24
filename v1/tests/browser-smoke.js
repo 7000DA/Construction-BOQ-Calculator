@@ -319,6 +319,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await page.locator("#previewInfo").textContent()).includes("125 valid"), "Bulk preview should validate every imported row");
     await page.locator("#confirmImport").click();
     await page.locator("#preview").waitFor({ state: "hidden" });
+    await page.emulateMedia({ media: "print" });
+    const multiPagePdf = await page.pdf({ format: "A4", printBackground: true });
+    const multiPageDocument = await require("pdf-lib").PDFDocument.load(multiPagePdf);
+    assert.ok(multiPageDocument.getPageCount() >= 2, "A large BOQ report must paginate into multiple PDF pages");
+    await page.emulateMedia({ media: "screen" });
     const bulkSection = page.locator(".section").last();
     assert.equal(await bulkSection.locator("tbody tr").count(), 125, "All valid bulk rows should be imported");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"));

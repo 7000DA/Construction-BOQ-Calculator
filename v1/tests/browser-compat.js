@@ -12,7 +12,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
 (async () => {
   const server = http.createServer((req, res) => {
     const pathname = decodeURIComponent(new URL(req.url, "http://127.0.0.1").pathname);
-    const relative = pathname === "/" ? "index.html" : pathname.replace(/^\\/+/, "");
+    const relative = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
     const file = path.resolve(root, relative);
     if (!file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
     fs.readFile(file, (err, body) => {

@@ -4,10 +4,12 @@
    predictable two-row section toolbar without shrinking the BOQ table. */
 @media(max-width:600px){
   button{min-height:40px}
-  .fields input,.fields select,.cell{min-height:42px;font-size:16px}
+  .fields input,.fields select,#sections .cell{min-height:44px;font-size:16px}
+  .section-head .section-name{min-height:44px;font-size:16px;line-height:1.25}
+  .section-head .small-btn{min-height:44px;white-space:nowrap}
   .section-head{
     display:grid;
-    grid-template-columns:auto minmax(0,1fr) auto auto;
+    grid-template-columns:auto minmax(0,1fr) minmax(52px,auto) minmax(52px,auto);
     align-items:center;
     gap:6px;
     padding:9px;

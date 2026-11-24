@@ -42,7 +42,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#name").fill("CI Smoke Project");
     const first = page.locator(".section").first();
     await first.locator(".add-item").click();
-    const row = first.locator("tbody tr").last();
+    const row = first.locator("tbody tr").nth(1);
     assert.equal(await row.locator(".item-no").textContent(), "02", "Item numbers should increment automatically within a section");
     await row.locator("input.description").fill("Reinforced concrete");
     await row.locator("input.unit").fill("m3");

@@ -57,7 +57,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok((await page.locator("#grand").textContent()).includes("5,000"), "Calculated grand total should persist after reload");
     assert.ok((await page.locator("#saveState").textContent()).includes("·"), "Last saved time should be visible after reload");
     await page.locator("#units").selectOption("Imperial");
-    assert.equal(await page.locator(".section").first().locator("tbody tr").first().locator("input.numeric").nth(0).inputValue(), "2.5", "Changing unit system must not convert stored quantities");
+    assert.equal(await page.locator(".section").first().locator("tbody tr").last().locator("input.numeric").nth(0).inputValue(), "2.5", "Changing unit system must not convert stored quantities");
 
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();

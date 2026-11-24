@@ -31,7 +31,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+    await page.route("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js", route =>
       route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
     );
     const pageErrors = [];
@@ -817,7 +817,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
 
     const persistenceContext = await browser.newContext();
     const persistencePage = await persistenceContext.newPage();
-    await persistencePage.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+    await persistencePage.route("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js", route =>
       route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
     );
     await persistencePage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
@@ -834,7 +834,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await persistenceContext.close();
     const reopenedContext = await browser.newContext({ storageState: persistedState });
     const reopenedPage = await reopenedContext.newPage();
-    await reopenedPage.route("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", route =>
+    await reopenedPage.route("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js", route =>
       route.fulfill({ path: path.resolve(__dirname, "../../node_modules/xlsx/dist/xlsx.full.min.js"), contentType: "text/javascript" })
     );
     await reopenedPage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });

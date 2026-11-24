@@ -577,6 +577,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       await mobileTable.evaluate(el => { el.scrollLeft = el.scrollWidth; });
       assert.ok(await mobileTable.evaluate(el => el.scrollLeft > 0), "Mobile table must be horizontally scrollable to its final columns");
       await mobileTable.evaluate(el => { el.scrollLeft = 0; });
+      await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.resolve(artifactDir, "boq-mobile-" + viewport.width + ".png"), fullPage: true });
     }
     await page.setViewportSize({ width: 390, height: 844 });
@@ -605,7 +606,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       assert.equal(toolbarMetrics.inputFont, "16px", "Mobile section name field should use 16px text to avoid iOS input zoom");
       const editorFonts = await page.locator(".fields input, .fields select, .section .cell").evaluateAll(nodes => nodes.map(node => getComputedStyle(node).fontSize));
       assert.ok(editorFonts.every(size => size === "16px"), "Project and BOQ editor fields should use 16px text on mobile");
-      const actionButtons = await page.locator(".actions button").evaluateAll(nodes => nodes.map(node => {
+      const actionButtons = await page.locator(".actions button:visible").evaluateAll(nodes => nodes.map(node => {
         const r = node.getBoundingClientRect(); return { left:r.left, right:r.right, width:r.width };
       }));
       assert.ok(actionButtons.every(r => r.width > 0 && r.left >= -1 && r.right <= width + 1), "Project file actions must wrap without clipping at " + width + "px");

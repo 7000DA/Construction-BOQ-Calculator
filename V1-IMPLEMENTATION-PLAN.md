@@ -44,6 +44,9 @@ Do not merge this branch into `main` or change GitHub Pages publishing until the
 - Excel export now writes values with more than 15 significant digits as text to avoid silent Excel numeric rounding. Values with safe precision remain numeric. Exported line amounts and grand totals are derived from the Base-10 decimal representation before choosing a numeric/text cell representation.
 - Browser acceptance coverage verifies a 16-digit quantity, a high-precision rate and the exact product `1234567890123457.234567890123456` survive Excel export.
 - PDF pagination is tested with a 125-item BOQ; the generated PDF must contain at least two pages.
-- A 1,000-item Excel preview/import/render benchmark was measured in CI at **506 ms** in the latest successful run. This is a single CI measurement, not a performance guarantee.
+- A 1,000-item Excel preview/import/render benchmark was measured in CI at **709 ms** in the latest successful run. This is a single CI measurement, not a performance guarantee.
 - Latest QA workflow run: `45366044460`, conclusion **success**, branch head `381fb90369317ec80b47fdcc768370fe1a66c714`.
 - Main branch and GitHub Pages remain unchanged. No merge or production deployment was performed.
+
+- Latest browser test run after the bilingual precision warning update: `45366170089`, conclusion **success**, code head `78d11763d8ee66ee742a677aa071260590fd9f33`.
+- The user-facing warning now states that values exceeding Excel's 15-significant-digit precision are exported as text to preserve digits and therefore are not usable as numeric operands in Excel formulas; JSON backup is identified as the exact source.

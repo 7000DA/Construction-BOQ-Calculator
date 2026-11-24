@@ -488,6 +488,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(await page.locator("header").evaluate(el => getComputedStyle(el).display), "none", "Print output must hide navigation controls");
     assert.equal(await page.locator(".section-head .delete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must hide destructive section controls");
     assert.equal(await page.locator(".section tbody tr.incomplete").first().evaluate(el => getComputedStyle(el).display), "none", "Print output must omit incomplete BOQ rows");
+    assert.equal(await page.locator(".section").first().evaluate(el => getComputedStyle(el).breakInside), "auto", "Long BOQ sections must be allowed to split across printed pages");
+    assert.equal(await page.locator(".section thead").first().evaluate(el => getComputedStyle(el).display), "table-header-group", "BOQ table headings must repeat on printed pages");
+    assert.equal(await page.locator(".section tbody tr").first().evaluate(el => getComputedStyle(el).breakInside), "avoid", "Individual BOQ rows should not split across printed pages");
     assert.equal(await page.locator(".section").count(), 4, "Print layout must retain BOQ sections");
     assert.ok((await page.locator("#grand").textContent()).includes("5,700"), "Print layout must retain the grand total");
     const pdf = await page.pdf({ format: "A4", printBackground: true });
@@ -587,7 +590,19 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.equal(fallbackBackup.project.info.name, "Backup-only project", "JSON backup must remain available when local storage fails");
     await storageContext.close();
     await recoveryPage.close();
-    console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
+
+    const unreadableStoragePage = await context.newPage();
+    await unreadableStoragePage.addInitScript(() => {
+      localStorage.setItem("professional-boq-v1-projects", "{corrupt-json");
+    });
+    await unreadableStoragePage.goto("http://127.0.0.1:" + server.address().port, { waitUntil: "domcontentloaded" });
+    await unreadableStoragePage.locator("#grand").waitFor();
+    assert.ok((await unreadableStoragePage.locator("#saveState").textContent()).includes("unreadable"), "Corrupt local storage must be reported instead of treated as empty");
+    assert.equal(await unreadableStoragePage.evaluate(() => localStorage.getItem("professional-boq-v1-projects")), "{corrupt-json", "Corrupt local storage must not be overwritten during startup");
+    await unreadableStoragePage.locator("#open").click();
+    assert.ok((await unreadableStoragePage.locator("#projectList").textContent()).includes("unreadable"), "Saved-project browser must explain unreadable storage without crashing");
+    await unreadableStoragePage.close();
+    console.log("V1 browser tests passed: numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output."); numeric validation, persistence, bilingual interface, sections, grouped/ambiguous Excel handling, strict JSON restore and generated PDF output.");
     await context.close();
   } finally {
     if (browser) await browser.close();

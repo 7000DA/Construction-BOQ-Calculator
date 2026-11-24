@@ -13,6 +13,11 @@ This branch is isolated from `main`. The currently published version remains unc
 - Excel import with preview and validation; Excel export.
 - Print-friendly report, suitable for saving as PDF.
 - Input validation and schema versioning.
+- Strict project-backup validation, unique record identifiers and safe recovery from malformed local data.
+- Invalid numeric edits are excluded from calculations and cannot overwrite the last valid saved values.
+- Ambiguous or incomplete Excel column mappings are rejected rather than guessed.
+- Incomplete BOQ rows are omitted from formal print/PDF reports; formal reports require a project name.
+- Excel import/export depends on the SheetJS CDN and therefore requires an internet connection.
 
 ## Acceptance checks
 1. Add/edit/delete sections and items; totals recalculate.

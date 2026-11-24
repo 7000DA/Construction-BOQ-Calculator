@@ -25,7 +25,7 @@ jobs:
       - name: Check HTML and JavaScript integration
         run: node v1/tests/static-check.js
       - name: Install browser test dependency
-        run: npm install --no-save playwright xlsx pdf-lib
+        run: npm install --no-save playwright https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz pdf-lib
       - name: Install Chromium
         run: npx playwright install chromium --only-shell
       - name: Install Edge and WebKit engines

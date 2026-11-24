@@ -67,6 +67,11 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#lang").click();
     await page.getByRole("heading", { name: "جدول الكميات", exact: true }).waitFor();
     assert.equal(await page.locator("#name").inputValue(), "CI Smoke Project", "Language switching must not change project data");
+    assert.ok((await page.locator(".note").textContent()).includes("تُحفظ المشروعات"), "Project instructions should be translated into Arabic");
+    await page.locator("#open").click();
+    await page.locator("#projects").waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "المشروعات المحفوظة", exact: true }).waitFor();
+    await page.locator("#closeProjects").click();
 
     await page.locator("#addSection").click();
     assert.equal(await page.locator(".section").count(), 3, "Adding a section should create one independent section");

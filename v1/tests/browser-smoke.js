@@ -250,6 +250,27 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#preview").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".section").count(), 4, "Reselecting the same Excel file must reopen preview without changing data");
 
+    const bulkBook = XLSX.utils.book_new();
+    const bulkRows = [["Section", "Description", "Unit", "Quantity", "Unit Rate"]];
+    for (let index = 1; index <= 125; index++) bulkRows.push(["Bulk test", "Bulk item " + index, "m", 1, 1]);
+    XLSX.utils.book_append_sheet(bulkBook, XLSX.utils.aoa_to_sheet(bulkRows), "BOQ");
+    await page.locator("#excelFile").setInputFiles({
+      name: "bulk-125-items.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(bulkBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#previewRows tr").count(), 125, "Excel preview must show every row beyond the first 100");
+    assert.ok((await page.locator("#previewInfo").textContent()).includes("125 valid"), "Bulk preview should validate every imported row");
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden" });
+    const bulkSection = page.locator(".section").last();
+    assert.equal(await bulkSection.locator("tbody tr").count(), 125, "All valid bulk rows should be imported");
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"));
+    page.once("dialog", dialog => dialog.accept());
+    await bulkSection.locator(".section-head .delete").click();
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));
+
     const [excelDownload] = await Promise.all([
       page.waitForEvent("download"),
       page.locator("#excelOut").click()

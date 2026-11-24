@@ -430,7 +430,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       buffer: fs.readFileSync(stressExportPath)
     });
     await roundTripPage.locator("#preview").waitFor({ state: "visible", timeout: 60000 });
-    assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5004, "Round-trip preview must include the four existing items and all 5000 stress rows");
+    assert.equal(await roundTripPage.locator("#previewRows tr").count(), 5000, "Round-trip preview must include all 5000 exported stress rows");
     await roundTripPage.locator("#confirmImport").click();
     await roundTripPage.locator("#preview").waitFor({ state: "hidden", timeout: 60000 });
     const roundTripStressSection = roundTripPage.locator(".section").filter({ has: roundTripPage.locator(".section-name") }).filter({ hasText: "Stress 5000" });
@@ -564,6 +564,33 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
       assert.ok(layout.main <= layout.viewport, "Main content must fit the viewport at " + viewport.width + "px");
       assert.ok(layout.tableContent >= layout.tableViewport, "BOQ table should remain horizontally scrollable within its wrapper on narrow screens");
     }
+    for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 700 }]) {
+      await page.setViewportSize(viewport);
+      const mobileTable = page.locator(".table-wrap").first();
+      const mobileMetrics = await mobileTable.evaluate(el => ({
+        clientWidth: el.clientWidth,
+        scrollWidth: el.scrollWidth,
+        overflowX: getComputedStyle(el).overflowX
+      }));
+      assert.ok(mobileMetrics.scrollWidth > mobileMetrics.clientWidth, "Mobile BOQ table must expose its wider columns through horizontal scrolling at " + viewport.width + "px");
+      assert.ok(["auto", "scroll"].includes(mobileMetrics.overflowX), "Mobile BOQ table wrapper must allow horizontal scrolling");
+      await mobileTable.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+      assert.ok(await mobileTable.evaluate(el => el.scrollLeft > 0), "Mobile table must be horizontally scrollable to its final columns");
+      await mobileTable.evaluate(el => { el.scrollLeft = 0; });
+      await page.screenshot({ path: path.resolve(artifactDir, "boq-mobile-" + viewport.width + ".png"), fullPage: true });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileSection = page.locator(".section").first();
+    const beforeMobileAdd = await mobileSection.locator("tbody tr").count();
+    await mobileSection.locator(".add-item").click();
+    assert.equal(await mobileSection.locator("tbody tr").count(), beforeMobileAdd + 1, "Add item control must work on a mobile viewport");
+    const addedMobileRow = mobileSection.locator("tbody tr").last();
+    await addedMobileRow.locator("input.description").fill("Mobile interaction test");
+    assert.equal(await addedMobileRow.locator("input.description").inputValue(), "Mobile interaction test", "New BOQ description must be editable on mobile");
+    page.once("dialog", dialog => dialog.accept());
+    await addedMobileRow.locator("button.remove").click();
+    assert.equal(await mobileSection.locator("tbody tr").count(), beforeMobileAdd, "Delete item control must work on a mobile viewport");
+    assert.equal(pageErrors.length, 0, "Mobile BOQ interactions must not produce browser errors");
     await page.setViewportSize(originalViewport);
 
     await page.emulateMedia({ media: "print" });

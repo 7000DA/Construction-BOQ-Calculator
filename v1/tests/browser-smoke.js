@@ -84,7 +84,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     const highPrecisionItem = highPrecisionRows.find(itemRow => itemRow[1] === "Reinforced concrete");
     assert.equal(highPrecisionItem[3], "1234567890123456", "Excel export should preserve high-precision quantities as text instead of silently rounding. Rows: " + JSON.stringify(highPrecisionRows));
     assert.equal(highPrecisionItem[4], "1.000000000000001", "Excel export should preserve high-precision rates as text instead of silently rounding");
-    assert.equal(highPrecisionItem[5], "1234567890123457", "Excel export should calculate and preserve high-precision amounts as text");
+    assert.equal(highPrecisionItem[5], "1234567890123457.234567890123456", "Excel export should calculate and preserve high-precision amounts as text");
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
     await disposableRow.locator("input.numeric").nth(0).fill("1");

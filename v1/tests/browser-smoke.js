@@ -8,6 +8,8 @@ const XLSX = require("xlsx");
 const normalizedDigits = value => value.replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[^0-9]/g, "");
 
 const root = path.resolve(__dirname, "..");
+const artifactDir = path.resolve(__dirname, "../../artifacts");
+fs.mkdirSync(artifactDir, { recursive: true });
 const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
 
 (async () => {
@@ -332,9 +334,17 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await page.locator("#confirmImport").click();
     await page.locator("#preview").waitFor({ state: "hidden" });
     await page.emulateMedia({ media: "print" });
-    const multiPagePdf = await page.pdf({ format: "A4", printBackground: true });
+    const multiPagePdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    fs.writeFileSync(path.join(artifactDir, "boq-report-en.pdf"), multiPagePdf);
     const multiPageDocument = await require("pdf-lib").PDFDocument.load(multiPagePdf);
     assert.ok(multiPageDocument.getPageCount() >= 2, "A large BOQ report must paginate into multiple PDF pages");
+    await page.locator("#lang").click();
+    assert.equal(await page.locator("html").getAttribute("dir"), "rtl", "Arabic PDF must use RTL document direction");
+    const arabicPdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+    fs.writeFileSync(path.join(artifactDir, "boq-report-ar.pdf"), arabicPdf);
+    const arabicDocument = await require("pdf-lib").PDFDocument.load(arabicPdf);
+    assert.ok(arabicDocument.getPageCount() >= 2, "The Arabic BOQ report must paginate across multiple PDF pages");
+    await page.locator("#lang").click();
     await page.emulateMedia({ media: "screen" });
     const bulkSection = page.locator(".section").last();
     assert.equal(await bulkSection.locator("tbody tr").count(), 125, "All valid bulk rows should be imported");
@@ -370,6 +380,27 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     page.once("dialog", dialog => dialog.accept());
     await bulkSection.locator(".section-head .delete").click();
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,700"));
+
+    const stressBook = XLSX.utils.book_new();
+    const stressRows = [["Section", "Description", "Unit", "Quantity", "Unit Rate"]];
+    for (let index = 1; index <= 5000; index++) stressRows.push(["Stress 5000", "Stress item " + index, "m", 1, 1]);
+    XLSX.utils.book_append_sheet(stressBook, XLSX.utils.aoa_to_sheet(stressRows), "BOQ");
+    const stressStarted = Date.now();
+    await page.locator("#excelFile").setInputFiles({
+      name: "stress-5000-items.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: XLSX.write(stressBook, { type: "buffer", bookType: "xlsx" })
+    });
+    await page.locator("#preview").waitFor({ state: "visible", timeout: 60000 });
+    assert.equal(await page.locator("#previewRows tr").count(), 5000, "Excel preview must display all 5000 stress-test rows");
+    await page.locator("#confirmImport").click();
+    await page.locator("#preview").waitFor({ state: "hidden", timeout: 60000 });
+    const stressSection = page.locator(".section").last();
+    assert.equal(await stressSection.locator("tbody tr").count(), 5000, "The application must render all 5000 imported items");
+    console.log("BOQ stress benchmark: 5000-row Excel preview + import + render = " + (Date.now() - stressStarted) + " ms");
+    page.once("dialog", dialog => dialog.accept());
+    await stressSection.locator(".section-head .delete").click();
+    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,825"), { timeout: 60000 });
 
     const [excelDownload] = await Promise.all([
       page.waitForEvent("download"),

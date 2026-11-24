@@ -62,3 +62,16 @@ Do not merge this branch into `main` or change GitHub Pages publishing until the
 - Latest multi-project and recovery browser-test run: `45380321752`, conclusion **success**, tested code commit `2e9861720875fdf550fa23e1bc405535da0e00ae`.
 - The latest CI measured 1,000-row Excel preview + import + render at **612 ms** in that CI run. This is a single environment-specific measurement, not a performance guarantee.
 - PDF pagination and print CSS are still not a substitute for a human visual inspection of rendered PDF pages, including Arabic RTL text and long descriptions.
+
+
+## PDF visual review and 5,000-row stress test (2026-11-24)
+
+- A real Chromium-generated English and Arabic PDF was exported by CI, rasterized to page PNGs with Poppler, downloaded, and visually inspected.
+- The first visual pass exposed clipped input values in print output and excessive blank space caused by keeping large panels together. Print preparation now temporarily renders project fields, section names, and BOQ cell values as wrapping text spans; `afterprint` restores the editable form controls. Print panels can paginate naturally, while headings and individual table rows remain protected from splitting.
+- The long-description regression test uses a deliberately long BOQ description and verifies that the complete text is present in print-mode output.
+- Visual review of the resulting four-page English and four-page Arabic sample confirmed: long descriptions wrap rather than truncate, table headings repeat across pages, Arabic page direction is RTL, project information and BOQ content share the first page more efficiently, and totals/project-data section appear at the end. This is a sample layout check, not a guarantee for every font, printer, or unusually wide custom content.
+- CI now uploads the generated PDFs and rasterized page images as artifact `boq-pdf-visual-review` (7-day retention) for review.
+- 1,000-row Excel preview + import + render: **661 ms** in run `45386759449`.
+- 5,000-row Excel preview + import + render: **2,714 ms** in the same CI environment. The full 5,000 rows were previewed and rendered, then the stress-test group was deleted; the test verifies the previous project total is restored. These are environment-specific measurements, not user-device performance guarantees.
+- Latest successful CI run: `45386759449`, commit `5fa00c7ecc721fc90e2387d093ce4d05b649aba5`.
+- No changes were made to `main` or GitHub Pages; no merge or deployment was performed.

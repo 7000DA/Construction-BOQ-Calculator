@@ -5,6 +5,7 @@ const http = require("node:http");
 const path = require("node:path");
 const { chromium } = require("playwright");
 const XLSX = require("xlsx");
+const normalizedDigits = value => value.replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[^0-9]/g, "");
 
 const root = path.resolve(__dirname, "..");
 const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
@@ -49,7 +50,7 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     assert.ok(!(await row.locator("input.unit").evaluate(el => el.classList.contains("invalid-input"))), "Unit labels must not be subjected to numeric validation");
     await row.locator("input.numeric").nth(0).fill("2.5");
     await row.locator("input.numeric").nth(1).fill("2000");
-    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,000"));
+    await page.waitForFunction(() => normalizedDigits(document.querySelector("#grand").textContent).startsWith("5000"));
     await row.locator("input.numeric").nth(1).fill("2100");
     await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,250"));
     await row.locator("input.numeric").nth(1).fill("2000");
@@ -110,8 +111,8 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     await independentRow.locator("input.unit").fill("m2");
     await independentRow.locator("input.numeric").nth(0).fill("1");
     await independentRow.locator("input.numeric").nth(1).fill("300");
-    await page.waitForFunction(() => document.querySelector("#grand").textContent.includes("5,300"));
-    assert.ok((await independentSection.locator(".section-total").textContent()).includes("300"), "Section total should be independent from the grand total");
+    await page.waitForFunction(() => normalizedDigits(document.querySelector("#grand").textContent).startsWith("5300"));
+    assert.ok(normalizedDigits(await independentSection.locator(".section-total").textContent()).startsWith("300"), "Section total should be independent from the grand total");
     page.once("dialog", dialog => dialog.accept());
     await independentSection.locator(".section-head .delete").click();
     assert.equal(await page.locator(".section").count(), 2, "Deleting a section should remove only that section");

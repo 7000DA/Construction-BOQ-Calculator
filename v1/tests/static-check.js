@@ -11,6 +11,8 @@ assert.ok(js.includes('$$("[data-en]").forEach('), "Language labels must be sele
 assert.ok(!/(^|[^$])\$\("\[data-en\]"\)\.forEach/.test(js), "Single-element selector must not be used as a collection");
 assert.ok(js.includes("schemaVersion"), "Project schema versioning must remain present");
 assert.ok(js.includes("function validNumber("), "Strict numeric validation must remain present");
+assert.ok(js.includes("function addDec(") && js.includes("function mulDec("), "Exact base-10 arithmetic must remain present");
+assert.ok(!js.includes("n(i.qty)*n(i.rate)"), "BOQ line amounts must not use direct binary floating-point multiplication");
 assert.ok(js.includes("copy=normalize(data)"), "Only schema-validated project snapshots may be persisted");
 assert.ok(js.includes('if(type==="number"){let invalid='), "Numeric validation must not be applied to text inputs");
 assert.ok(js.includes('$("[data-en]").forEach('), "All bilingual labels must be iterated");

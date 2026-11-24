@@ -590,6 +590,34 @@ const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=u
     page.once("dialog", dialog => dialog.accept());
     await addedMobileRow.locator("button.remove").click();
     assert.equal(await mobileSection.locator("tbody tr").count(), beforeMobileAdd, "Delete item control must work on a mobile viewport");
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      const mobileToolbar = mobileSection.locator(".section-head");
+      const toolbarMetrics = await mobileToolbar.evaluate(el => {
+        const rect = node => { const r = node.getBoundingClientRect(); return { left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
+        const controls = [...el.querySelectorAll("button,input")].map(node => ({ text:node.textContent || node.getAttribute("aria-label") || node.className, ...rect(node) }));
+        return { width:el.getBoundingClientRect().width, controls, inputFont:getComputedStyle(el.querySelector("input")).fontSize };
+      });
+      for (const control of toolbarMetrics.controls) {
+        assert.ok(control.width > 0 && control.height >= 38, "Section toolbar controls must remain visible and finger-accessible at " + width + "px");
+        assert.ok(control.left >= -1 && control.right <= width + 1, "Section toolbar controls must stay inside the viewport at " + width + "px");
+      }
+      assert.equal(toolbarMetrics.inputFont, "16px", "Mobile editable fields should use 16px text to avoid iOS input zoom");
+      const actionButtons = await page.locator(".actions button").evaluateAll(nodes => nodes.map(node => {
+        const r = node.getBoundingClientRect(); return { left:r.left, right:r.right, width:r.width };
+      }));
+      assert.ok(actionButtons.every(r => r.width > 0 && r.left >= -1 && r.right <= width + 1), "Project file actions must wrap without clipping at " + width + "px");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Mobile layout must not introduce page-level horizontal scrolling at " + width + "px");
+    }
+    await page.setViewportSize({ width: 320, height: 700 });
+    const sectionsBeforeToolbarTest = await page.locator(".section").count();
+    await page.locator("#addSection").click();
+    assert.equal(await page.locator(".section").count(), sectionsBeforeToolbarTest + 1, "Add section must remain usable on a 320px viewport");
+    const temporarySection = page.locator(".section").last();
+    page.once("dialog", dialog => dialog.accept());
+    await temporarySection.locator(".section-head .delete").click();
+    assert.equal(await page.locator(".section").count(), sectionsBeforeToolbarTest, "Delete section must remain usable on a 320px viewport");
+    await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(pageErrors.length, 0, "Mobile BOQ interactions must not produce browser errors");
     await page.setViewportSize(originalViewport);
 
